@@ -58,7 +58,7 @@ class GPT3_5LLM(LLM):
         self.presence_penalty = presence_penalty
         self.tokens = 0
 
-    def response(self, system, user, stop="\n"):
+    def response(self,  user, system="You are a smart assistant who can help humans to resolve their problems.", stop="\n"):
         response = openai.ChatCompletion.create(
             model=self.model,
             messages=[

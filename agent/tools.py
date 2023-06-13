@@ -1,20 +1,22 @@
+from typing import Union
+from utils.logger import ALMLogger
+
+
 class Tool:
     def __init__(self):
         self.invoke_label = "none"
 
-    def invoke(self, invoke_data) -> str:
+    def invoke(self, invoke_data, logger: ALMLogger) -> Union[str, int, bool]:
         raise NotImplementedError("You need to implement this tool.")
 
     def description(self) -> str:
-        raise NotImplementedError("You need to implement this tool.")
-
-    def example(self) -> str:
         raise NotImplementedError("You need to implement this tool.")
 
 
 class ToolList:
     def __init__(self):
         self.tool_map = {}
+        self.examples = []
 
     def registerTool(self, tool: Tool) -> bool:
         tool_label = tool.invoke_label
@@ -23,13 +25,39 @@ class ToolList:
             return False
         self.tool_map[tool_label] = tool
 
+    def addExampleFromFile(self, file_path):
+        file = open(file_path, "r")
+        self.examples.append(file.read())
+        file.close()
+
+    def addExample(self, example: str):
+        self.examples.append(example)
+
+    def description(self, use_examples=True):
+        if self.num() == 0:
+            Warning("This toollist has not registed any tool yet.")
+        if self.num() == 1:
+            res = "There is one action or tool you can use:\n"
+        else:
+            res = "There are %d actions or tools you can use:\n" % self.num()
+        cnt = 1
+        for _, v in self.tool_map.items():
+            res += "%d. %s\n" % (cnt, v.description())
+            cnt += 1
+        if use_examples:
+            res += "Here are some examples.\n"
+            for e in self.examples:
+                res += e + "\n"
+            res += "\n"
+        return res
+
     def num(self):
         return len(self.tool_map)
 
-    def invoke(self, invoke_cmd):
+    def invoke(self, invoke_cmd, logger: ALMLogger) -> Union[str, int, bool]:
         try:
             invoke_id = invoke_cmd[0:invoke_cmd.find("(")]
             args = invoke_cmd[invoke_cmd.find("(") + 1: invoke_cmd.find(")")]
-            self.tool_map[invoke_id].invoke(args)
+            return self.tool_map[invoke_id].invoke(args, logger)
         except:
             raise ValueError("Invalid invoke_cmd %s!" % invoke_cmd)
