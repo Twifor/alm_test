@@ -1,10 +1,9 @@
-from types import UnionType
+from typing import Union, Dict
 from agent.tools import Tool
 from langchain import Wikipedia
 from langchain.agents.react.base import DocstoreExplorer
 import re
 import string
-from utils.logger import ALMLogger
 
 
 def normalize_answer(s):
@@ -61,8 +60,8 @@ class SearchTool(Tool):
         self.wikiEnv = wikiEnv
         self.invoke_label = "Search"
 
-    def invoke(self, invoke_data, logger: ALMLogger) -> UnionType:
-        return self.wikiEnv.search(invoke_data), 0, False
+    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+        return self.wikiEnv.search(invoke_data), 0, False, {}
 
     def description(self) -> str:
         return "Search(entity), which searches the exact entity on Wikipedia and returns the first paragraph if it exists. If not, it will return some similar entities to search."
@@ -74,8 +73,8 @@ class LookupTool(Tool):
         self.wikiEnv = wikiEnv
         self.invoke_label = "Lookup"
 
-    def invoke(self, invoke_data, logger: ALMLogger) -> UnionType:
-        return self.wikiEnv.lookup(invoke_data), 0, False
+    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+        return self.wikiEnv.lookup(invoke_data), 0, False, {}
 
     def description(self) -> str:
         return "Lookup(keyword), which returns the next sentence containing keyword in the current passage."
@@ -87,10 +86,9 @@ class FinishTool(Tool):
         self.wikiEnv = wikiEnv
         self.invoke_label = "Finish"
 
-    def invoke(self, invoke_data, logger: ALMLogger) -> UnionType:
-        logger.answer(invoke_data)
+    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
         res = self.wikiEnv.finish(invoke_data)
-        return res[0], res[1], True
+        return res[0], res[1], True, {"answer": invoke_data, "gt_answer": self.wikiEnv.gt_answer}
 
     def description(self) -> str:
         return "Finish(answer), which returns the answer and finishes the task."

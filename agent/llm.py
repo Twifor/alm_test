@@ -1,4 +1,7 @@
 import openai
+from openai.error import RateLimitError
+import time
+import warnings
 
 
 class LLM:
@@ -12,7 +15,7 @@ class LLM:
 class Davinci003LLM(LLM):
     def __init__(self, openai_key,
                  temperature=0,
-                 max_tokens=100,
+                 max_tokens=300,
                  top_p=1,
                  frequency_penalty=0.0,
                  presence_penalty=0.0):
@@ -27,24 +30,29 @@ class Davinci003LLM(LLM):
         self.tokens = 0
 
     def response(self, prompt, stop="\n"):
-        response = openai.Completion.create(
-            model=self.model,
-            prompt=prompt,
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-            top_p=self.top_p,
-            frequency_penalty=self.frequency_penalty,
-            presence_penalty=self.presence_penalty,
-            stop=stop
-        )
-        self.tokens += response["usage"]["total_tokens"]
-        return response["choices"][0]["text"]
+        try:
+            response = openai.Completion.create(
+                model=self.model,
+                prompt=prompt,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                top_p=self.top_p,
+                frequency_penalty=self.frequency_penalty,
+                presence_penalty=self.presence_penalty,
+                stop=stop
+            )
+            self.tokens += response["usage"]["total_tokens"]
+            return response["choices"][0]["text"]
+        except RateLimitError:
+            warnings.warn("Model error. Try again...")
+            time.sleep(2)
+            return self.response(prompt, stop)
 
 
 class GPT3_5LLM(LLM):
     def __init__(self, openai_key,
                  temperature=0,
-                 max_tokens=100,
+                 max_tokens=300,
                  top_p=1,
                  frequency_penalty=0.0,
                  presence_penalty=0.0):
@@ -59,18 +67,23 @@ class GPT3_5LLM(LLM):
         self.tokens = 0
 
     def response(self,  user, system="You are a smart assistant who can help humans to resolve their problems.", stop="\n"):
-        response = openai.ChatCompletion.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user}
-            ],
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-            top_p=self.top_p,
-            frequency_penalty=self.frequency_penalty,
-            presence_penalty=self.presence_penalty,
-            stop=stop
-        )
-        self.tokens += response["usage"]["total_tokens"]
-        return response["choices"][0]["message"]["content"]
+        try:
+            response = openai.ChatCompletion.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user}
+                ],
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                top_p=self.top_p,
+                frequency_penalty=self.frequency_penalty,
+                presence_penalty=self.presence_penalty,
+                stop=stop
+            )
+            self.tokens += response["usage"]["total_tokens"]
+            return response["choices"][0]["message"]["content"]
+        except RateLimitError:
+            warnings.warn("Model error. Try again...")
+            time.sleep(2)
+            return self.response(user, system, stop)

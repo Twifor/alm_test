@@ -4,9 +4,6 @@ class ReActRawHistoryState:
         self.steps = []
         self.request = ""
 
-    def init_request(self, request):
-        self.request = request
-
     def updateState(self, thought, action, observation):
         id = len(self.steps) + 1
         self.steps.append(
@@ -18,8 +15,11 @@ class ReActRawHistoryState:
         return len(self.steps)
 
     def description(self):
-        res = "Question: %s\n" % self.request
+        res = ""
         for step in self.steps:
             for k, v in step.items():
                 res += k + v + "\n"
         return res
+
+    def reset(self):
+        self.steps = []

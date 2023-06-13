@@ -1,15 +1,12 @@
 from examples.hotpotQA.hotpotqa_tools import *
 from agent.tools import ToolList
-from agent.alm import ReActAgent
+from agent.alm import ReActAgent, ReActReflexionAgent
 from utils.loadenv import Env
 from agent.llm import GPT3_5LLM
-from utils.logger import ALMLogger
 import time
 
-query = "If You Ever Get Lonely was covered by what Lyric Street Records-affiliated band?"
-gt_answer = "Love and Theft"
-logger = ALMLogger("test1")
-logger.gt_answer("Love and Theft")
+query = "Sadok Sassi played for a national team that made its first World Cup in what year?"
+gt_answer = "1978"
 
 hotpotQA_tool_list = ToolList()
 
@@ -22,16 +19,11 @@ hotpotQA_tool_list.addExampleFromFile(
 env = Env()
 llm = GPT3_5LLM(env.openai_key())
 
-react_agent = ReActAgent(llm, logger, hotpotQA_tool_list)
+react_agent = ReActReflexionAgent(llm, llm, hotpotQA_tool_list)
+react_agent.readReflecionExampleFromFile(
+    "./examples/hotpotQA/hotpotqa_reflection_examples.txt")
 react_agent.setRequest(query)
-while True:
-    is_done, reward = react_agent.step()
-    if is_done:
-        break
+while not react_agent.isFinished():
+    reward = react_agent.step()
     time.sleep(2)
-
-logger.finish()
-#
-
-# print(react_agent.step())
-# print(llm.response("You are a smart assistant.", "Good evening!"))
+react_agent.saveLog("test0")
