@@ -49,7 +49,7 @@ class ReActAgent:
         prompt += self.state_memory.description()
         prompt += f"Thought {self.current_steps + 1}:"
         llm_response = self.llm.response(
-            prompt, stop=f"\nObservation {self.current_steps + 1}:")
+            prompt, stop=f"\nObservation:")
         thought, action = llm_response.strip().split(
             f"\nAction {self.current_steps + 1}: ")
         obs, reward, isDone = self.toolList.invoke(action)
@@ -185,49 +185,3 @@ class ReActReflexionAgent(ReActAgent):
         for k, v in external_info.items():
             obj[k] = v
         logger(event_id, obj)
-
-
-class ReActToolAgent:
-    def __init__(self, llm: GPT3_5LLM,  toolList: ToolList = None):
-        self.llm = llm
-        self.toolList = toolList
-        if self.toolList == None:
-            self.toolList = ToolList()
-        self.PromptHead = "Solve a task with interleaving Thought, Action, Observation steps. Thought can reason about the current situation.\n"
-        self.PromptHead += "You must output your answer in the following format:\nFirstly, output your thought and then output \"Action:\" followed by your action.\n"
-        self.PromptHead += "The action you provide should be the format like \"search(Kam Heskin)\". Except this, do not output anything else. You need to provide the tool_label like \"search\" and then provide your parameters in parentheses.\n"
-        self.PromptHead += "You can only use the tools we provide to you. The list of tools you can use will be showed later.\n"
-
-        self.request = ""
-
-    def output_TAO(self, thought, action, observation):
-        print(f"ReActToolAgent:\n")
-        print(f"\033[32mThought\033[0m: {thought}")
-        print(f"\033[33mAction\033[0m: {action}")
-        print(f"\033[34mObservation\033[0m: {observation}")
-        print("=="*20)
-
-    def setRequest(self, request):
-        self.request = request
-
-    def registerTool(self, tool: Tool) -> bool:
-        return self.toolList.registerTool(tool)
-
-    def step(self, is_output=False):
-        prompt = self.PromptHead
-        prompt += self.toolList.description(use_examples=False)
-        if self.request == "":
-            warnings.warn("Request is empty.")
-        prompt += f"Task: {self.request}\n"
-        prompt += f"Thought:"
-        print(prompt)
-        llm_response = self.llm.response(
-            prompt, stop=f"\nObservation:")
-        thought, action = llm_response.strip().split(
-            f"\nAction: ")
-        print(thought)
-        print(action)
-        obs, reward, isDone = self.toolList.invoke(action)
-        if is_output:
-            self.output_TAO(thought, action, obs)
-        return obs, reward, isDone

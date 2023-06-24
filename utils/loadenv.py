@@ -23,3 +23,15 @@ class Env:
         if not searper_key:
             raise ValueError("Environment variables are missing.")
         return searper_key
+
+    def wolframalpha_appid(self):
+        wolframalph_appid = os.getenv("WOLFRAMALPHA_APP_ID")
+        if not wolframalph_appid:
+            raise ValueError("Environment variables are missing.")
+        return wolframalph_appid
+
+    def bing_map_key(self):
+        bing_map_key = os.getenv("BING_MAP_KEY")
+        if not bing_map_key:
+            raise ValueError("Environment variables are missing.")
+        return bing_map_key

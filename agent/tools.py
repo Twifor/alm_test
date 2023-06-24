@@ -58,9 +58,10 @@ class ToolList:
 
     def invoke(self, invoke_cmd) -> Union[str, int, bool]:
         try:
-            invoke_id = invoke_cmd[0:invoke_cmd.find("(")]
+            invoke_id = invoke_cmd[0:invoke_cmd.find("(")].strip()
             args = invoke_cmd[invoke_cmd.find("(") + 1: invoke_cmd.rfind(")")]
-            obs, reward, isDone, info = self.tool_map[invoke_id].invoke(args)
+            obs, reward, isDone, info = self.tool_map[invoke_id].invoke(
+                args.strip().strip('"').strip("'"))
             self.info.update(info)
             return obs, reward, isDone
         except:

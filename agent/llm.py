@@ -52,7 +52,7 @@ class Davinci003LLM(LLM):
 class GPT3_5LLM(LLM):
     def __init__(self, openai_key,
                  temperature=0,
-                 max_tokens=300,
+                 max_tokens=500,
                  top_p=1,
                  frequency_penalty=0.0,
                  presence_penalty=0.0):
