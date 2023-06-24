@@ -65,7 +65,7 @@ class ToolList:
             self.info.update(info)
             return obs, reward, isDone
         except:
-            raise ValueError("Invalid invoke_cmd %s!" % invoke_cmd)
+            return "Invalid invoke_cmd %s!" % invoke_cmd, 0, False
 
     def toolInfo(self):
         return self.info
