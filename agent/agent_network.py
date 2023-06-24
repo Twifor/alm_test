@@ -41,13 +41,12 @@ class ReActToolAgent:
             prompt, stop=f"\nObservation:")
         try:
             thought, action = llm_response.strip().split(
-                f"Action {self.state.num() + 1}: ")
+                f"Action:")
         except:
-            try:
-                thought, action = llm_response.strip().split(
-                    f"Action:")
-            except:
-                raise ValueError(f"Error: {llm_response}")
+            warnings.warn("LLM fail recover.")
+            action = self.llm.response(
+                prompt + llm_response + "Action: ", stop=f"\nObservation:")
+            thought = llm_response
         obs, reward, isDone = self.toolList.invoke(action)
         return prompt, thought, action, obs, reward, isDone
 
@@ -66,8 +65,8 @@ class AgentNetWork:
 
     def output_TAO(self, now_tool_label, next_tools, thought, action, observation):
         print(f"At step \033[31m{self.current_steps + 1}\033[0m:")
-        print(f"\033[35mToolAgent: \033[0m: {now_tool_label}")
-        print(f"\033[35mNext Tools: \033[0m: {next_tools}")
+        print(f"\033[35mToolAgent\033[0m: {now_tool_label}")
+        print(f"\033[35mNext Tools\033[0m: {next_tools}")
         print(f"\033[32mThought\033[0m: {thought.strip()}")
         print(f"\033[33mAction\033[0m: {action.strip()}")
         print(f"\033[34mObservation\033[0m: {str(observation).strip()}")
@@ -121,6 +120,10 @@ class AgentNetWork:
 
         self.current_steps += 1
         self.current_tool_label = next_tool_label
+
+    def steps(self):
+        while self.isFinished == False:
+            self.step()
 
 
 EXAMPLES = """
