@@ -1,5 +1,5 @@
 import openai
-from openai.error import RateLimitError
+from openai.error import RateLimitError, ServiceUnavailableError
 import time
 import warnings
 
@@ -83,7 +83,7 @@ class GPT3_5LLM(LLM):
             )
             self.tokens += response["usage"]["total_tokens"]
             return response["choices"][0]["message"]["content"]
-        except RateLimitError:
+        except RateLimitError or ServiceUnavailableError:
             warnings.warn("Model error. Try again...")
             time.sleep(2)
             return self.response(user, system, stop)

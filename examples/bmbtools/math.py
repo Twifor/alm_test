@@ -8,7 +8,7 @@ class RoundTool(Tool):
         self.invoke_label = "Round"
 
     def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
-        number = float(invoke_data)
+        number = float(eval(invoke_data))
         return round(number), 0, False, {}
 
     def description(self) -> str:
