@@ -1,6 +1,6 @@
 from cProfile import run
 from examples.bmbtools.python import RunPythonTool
-from examples.bmbtools.shell import RunShellTool
+# from examples.bmbtools.shell import RunShellTool
 from examples.bmbtools.wikipedia import WikiLookUpTool, WikiPediaDisambiguationTool, WikiPediaSearchTool
 from examples.bmbtools.arxiv import SearchArxivTool
 from examples.bmbtools.file_operation import ReadFileTool, WriteFileTool
@@ -19,7 +19,7 @@ from agent.tools import ToolList
 from agent.llm import GPT3_5LLM
 from utils.loadenv import Env
 from agent.state_memory import ReActRawHistoryState
-
+import math
 
 env = Env()
 llm = GPT3_5LLM(env.openai_key())
@@ -28,7 +28,7 @@ read_file_tool = ReadFileTool()
 distance_tool = GetDistanceTool(env.bing_map_key())
 round_tool = RoundTool()
 python_tool = ExecuteCodeTool()
-answer_tool = AnswerTool()
+answer_tool = AnswerTool(lambda x: abs(float(x) - 1347.0) < 1)
 
 agent1 = ReActToolAgent(llm, read_file_tool)
 agent2 = ReActToolAgent(llm, distance_tool)
@@ -49,14 +49,9 @@ network.link(round_tool.invoke_label, python_tool.invoke_label)
 network.link(python_tool.invoke_label, answer_tool.invoke_label)
 
 network.init(read_file_tool.invoke_label,
-             "Read two locations from \"location.txt\" and get the distance in kilometers between these two locations. The round this number into an integer x. Finally tell me the the result of x*(x+1)/2 and submit your result.")
+             "Read two locations from \"location.txt\" and get the distance in kilometers between these two locations. The round this number into an integer x. Finally tell me the the result of sqrt(x)*(x+1)/2 and submit your result.")
 
-network.step()
-network.step()
-network.step()
-network.step()
-network.step()
-network.step()
+network.steps()
 # llm = GPT3_5LLM(env.openai_key())
 # react_tool_agent = ReActToolAgent(llm, tool, history)
 # react_tool_agent.setRequest(
