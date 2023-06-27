@@ -13,12 +13,15 @@ class LLM:
 
 
 class Davinci003LLM(LLM):
-    def __init__(self, openai_key,
-                 temperature=0,
-                 max_tokens=300,
-                 top_p=1,
-                 frequency_penalty=0.0,
-                 presence_penalty=0.0):
+    def __init__(
+        self,
+        openai_key,
+        temperature=0,
+        max_tokens=300,
+        top_p=1,
+        frequency_penalty=0.0,
+        presence_penalty=0.0,
+    ):
         super().__init__()
         openai.api_key = openai_key
         self.model = "text-davinci-003"
@@ -39,7 +42,7 @@ class Davinci003LLM(LLM):
                 top_p=self.top_p,
                 frequency_penalty=self.frequency_penalty,
                 presence_penalty=self.presence_penalty,
-                stop=stop
+                stop=stop,
             )
             self.tokens += response["usage"]["total_tokens"]
             return response["choices"][0]["text"]
@@ -50,12 +53,15 @@ class Davinci003LLM(LLM):
 
 
 class GPT3_5LLM(LLM):
-    def __init__(self, openai_key,
-                 temperature=0,
-                 max_tokens=500,
-                 top_p=1,
-                 frequency_penalty=0.0,
-                 presence_penalty=0.0):
+    def __init__(
+        self,
+        openai_key,
+        temperature=0,
+        max_tokens=500,
+        top_p=1,
+        frequency_penalty=0.0,
+        presence_penalty=0.0,
+    ):
         super().__init__()
         openai.api_key = openai_key
         self.model = "gpt-3.5-turbo"
@@ -66,20 +72,27 @@ class GPT3_5LLM(LLM):
         self.presence_penalty = presence_penalty
         self.tokens = 0
 
-    def response(self,  user, system="You are a smart assistant who can help humans to resolve their problems.", stop="\n"):
+    def response(
+        self,
+        user,
+        system="You are ChatGPT, a large language model trained by OpenAI.\n"
+        + "Knowledge cutoff: 2021-09\n"
+        + "Current date: 2023-6-27",
+        stop="\n",
+    ):
         try:
             response = openai.ChatCompletion.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system},
-                    {"role": "user", "content": user}
+                    {"role": "user", "content": user},
                 ],
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
                 top_p=self.top_p,
                 frequency_penalty=self.frequency_penalty,
                 presence_penalty=self.presence_penalty,
-                stop=stop
+                stop=stop,
             )
             self.tokens += response["usage"]["total_tokens"]
             return response["choices"][0]["message"]["content"]

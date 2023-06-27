@@ -8,13 +8,19 @@ class ReActRawHistoryState:
         id = len(self.steps) + 1
         if rk:
             self.steps.append(
-                {"Thought %d: " % id: thought, "Action %d: " %
-                    id: action, "Observation %d: " % id: observation}
+                {
+                    "Thought %d: " % id: thought.strip(),
+                    "Action %d: " % id: action,
+                    "Observation %d: " % id: observation,
+                }
             )
         else:
             self.steps.append(
-                {"Thought: ": thought, "Action: ": action,
-                    "Observation: ": observation}
+                {
+                    "Thought: ": thought.strip(),
+                    "Action: ": action,
+                    "Observation: ": observation,
+                }
             )
 
     def num(self):
