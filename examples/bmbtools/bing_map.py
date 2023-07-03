@@ -1,20 +1,16 @@
-
 import requests
 import os
 import json
 from agent.tools import Tool
 from typing import Union, Dict
 
-BASE_URL = 'http://dev.virtualearth.net/REST/V1/'
+BASE_URL = "http://dev.virtualearth.net/REST/V1/"
 
 
 def get_coordinates(location: str, key):
     """Get the coordinates of a location"""
     url = BASE_URL + "Locations"
-    params = {
-        "query": location,
-        "key": key
-    }
+    params = {"query": location, "key": key}
     response = requests.get(url, params=params)
     json_data = response.json()
     coordinates = json_data["resourceSets"][0]["resources"][0]["point"]["coordinates"]
@@ -28,10 +24,17 @@ class GetDistanceTool(Tool):
         self.key = key
 
     def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
-        # return 119.848, 0, False, {}
+        # return "136.559 miles", 0, False, {}
         start, end = invoke_data.strip().split(",")
-        url = BASE_URL + "Routes/Driving?o=json&wp.0=" + \
-            start + "&wp.1=" + end + "&key=" + self.key
+        url = (
+            BASE_URL
+            + "Routes/Driving?o=json&wp.0="
+            + start
+            + "&wp.1="
+            + end
+            + "&key="
+            + self.key
+        )
         # GET request
         r = requests.get(url)
         data = json.loads(r.text)
@@ -42,7 +45,9 @@ class GetDistanceTool(Tool):
         return distance, 0, False, {}
 
     def description(self) -> str:
-        return "GetDistance(start, end), get the distance between two locations in miles."
+        return (
+            "GetDistance(start, end), get the distance between two locations in miles."
+        )
 
 
 class GetRouteTool(Tool):
@@ -53,8 +58,15 @@ class GetRouteTool(Tool):
 
     def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
         start, end = invoke_data.strip().split(",")
-        url = BASE_URL + "Routes/Driving?o=json&wp.0=" + \
-            start + "&wp.1=" + end + "&key=" + self.key
+        url = (
+            BASE_URL
+            + "Routes/Driving?o=json&wp.0="
+            + start
+            + "&wp.1="
+            + end
+            + "&key="
+            + self.key
+        )
         # GET request
         r = requests.get(url)
         data = json.loads(r.text)
@@ -94,9 +106,11 @@ class SearchNearbyTool(Tool):
 
     def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
         KEY = self.key
-        search_term, latitude, longitude, places, radius = invoke_data.strip().split(",")
+        search_term, latitude, longitude, places, radius = invoke_data.strip().split(
+            ","
+        )
         url = BASE_URL + "LocalSearch"
-        if places != 'unknown':
+        if places != "unknown":
             latitude = get_coordinates(places, self.key)[0]
             longitude = get_coordinates(places, self.key)[1]
         # Build the request query string
@@ -104,7 +118,7 @@ class SearchNearbyTool(Tool):
             "query": search_term,
             "userLocation": f"{latitude},{longitude}",
             "radius": radius,
-            "key": KEY
+            "key": KEY,
         }
         # Make the request
         response = requests.get(url, params=params)

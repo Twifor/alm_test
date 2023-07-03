@@ -22,8 +22,7 @@ class ToolList:
     def registerTool(self, tool: Tool) -> bool:
         tool_label = tool.invoke_label
         if tool_label in self.tool_map.keys():
-            warnings.warn("The tool %s has already been registed." %
-                          tool_label)
+            warnings.warn("The tool %s has already been registed." % tool_label)
             return False
         self.tool_map[tool_label] = tool
 
@@ -58,14 +57,42 @@ class ToolList:
 
     def invoke(self, invoke_cmd) -> Union[str, int, bool]:
         try:
-            invoke_id = invoke_cmd[0:invoke_cmd.find("(")].strip()
-            args = invoke_cmd[invoke_cmd.find("(") + 1: invoke_cmd.rfind(")")]
+            invoke_id = invoke_cmd[0 : invoke_cmd.find("(")].strip()
+            args = invoke_cmd[invoke_cmd.find("(") + 1 : invoke_cmd.rfind(")")]
             obs, reward, isDone, info = self.tool_map[invoke_id].invoke(
-                args.strip().strip('"').strip("'"))
+                args.strip().strip('"').strip("'")
+            )
             self.info.update(info)
             return obs, reward, isDone
+        except KeyError:
+            return (
+                f'"{invoke_id}" not found. You can only invoke the tools we provide to you: {", ".join(self.tool_map.keys())}',
+                -500,
+                False,
+            )
         except:
             return "Invalid invoke_cmd %s!" % invoke_cmd, 0, False
 
     def toolInfo(self):
         return self.info
+
+
+def argsParser(arg_str):
+    args = []
+    tmp = ""
+    status = 0
+    for i in arg_str:
+        if status == 0:
+            if i == ",":
+                args.append(tmp)
+            elif i == '"':
+                status = 1
+                tmp = ""
+        else:
+            if i == '"':
+                status -= 1
+            else:
+                tmp += i
+    if tmp != "":
+        args.append(tmp)
+    return args

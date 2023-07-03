@@ -2,6 +2,7 @@ import openai
 from openai.error import RateLimitError, ServiceUnavailableError
 import time
 import warnings
+# from retry import retry
 
 
 class LLM:
@@ -32,24 +33,20 @@ class Davinci003LLM(LLM):
         self.presence_penalty = presence_penalty
         self.tokens = 0
 
+    # @retry(Exception, tries=3, delay=1)
     def response(self, prompt, stop="\n"):
-        try:
-            response = openai.Completion.create(
-                model=self.model,
-                prompt=prompt,
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
-                top_p=self.top_p,
-                frequency_penalty=self.frequency_penalty,
-                presence_penalty=self.presence_penalty,
-                stop=stop,
-            )
-            self.tokens += response["usage"]["total_tokens"]
-            return response["choices"][0]["text"]
-        except RateLimitError:
-            warnings.warn("Model error. Try again...")
-            time.sleep(2)
-            return self.response(prompt, stop)
+        response = openai.Completion.create(
+            model=self.model,
+            prompt=prompt,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            top_p=self.top_p,
+            frequency_penalty=self.frequency_penalty,
+            presence_penalty=self.presence_penalty,
+            stop=stop,
+        )
+        self.tokens += response["usage"]["total_tokens"]
+        return response["choices"][0]["text"]
 
 
 class GPT3_5LLM(LLM):
@@ -72,6 +69,7 @@ class GPT3_5LLM(LLM):
         self.presence_penalty = presence_penalty
         self.tokens = 0
 
+    # @retry(Exception, tries=8, delay=1)
     def response(
         self,
         user,
@@ -80,23 +78,18 @@ class GPT3_5LLM(LLM):
         + "Current date: 2023-6-27",
         stop="\n",
     ):
-        try:
-            response = openai.ChatCompletion.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
-                top_p=self.top_p,
-                frequency_penalty=self.frequency_penalty,
-                presence_penalty=self.presence_penalty,
-                stop=stop,
-            )
-            self.tokens += response["usage"]["total_tokens"]
-            return response["choices"][0]["message"]["content"]
-        except RateLimitError or ServiceUnavailableError:
-            warnings.warn("Model error. Try again...")
-            time.sleep(2)
-            return self.response(user, system, stop)
+        response = openai.ChatCompletion.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            top_p=self.top_p,
+            frequency_penalty=self.frequency_penalty,
+            presence_penalty=self.presence_penalty,
+            stop=stop,
+        )
+        self.tokens += response["usage"]["total_tokens"]
+        return response["choices"][0]["message"]["content"]

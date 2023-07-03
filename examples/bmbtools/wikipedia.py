@@ -40,11 +40,11 @@ class WikiPage:
         # find all sentence
         sentences = []
         for p in paragraphs:
-            sentences += p.split('. ')
-        sentences = [s.strip() + '.' for s in sentences if s.strip()]
+            sentences += p.split(". ")
+        sentences = [s.strip() + "." for s in sentences if s.strip()]
         self.paragraphs = paragraphs
         self.sentences = sentences
-        return ' '.join(sentences[:5])
+        return " ".join(sentences[:5])
 
     def construct_lookup_list(self, keyword: str):
         sentences = self.sentences
@@ -66,20 +66,19 @@ class WikiPediaSearchTool(Tool):
         self.invoke_label = "WikiPediaSearch"
 
     def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
-        entity = invoke_data
+        entity = invoke_data.strip().strip("'").strip('"')
         entity_ = entity.replace(" ", "+")
         search_url = f"https://en.wikipedia.org/w/index.php?search={entity_}"
         response_text = requests.get(search_url).text
         soup = BeautifulSoup(response_text, features="html.parser")
-        result_divs = soup.find_all(
-            "div", {"class": "mw-search-result-heading"})
+        result_divs = soup.find_all("div", {"class": "mw-search-result-heading"})
         if result_divs:  # mismatch
-            result_titles = [clean_str(div.get_text().strip())
-                             for div in result_divs]
+            result_titles = [clean_str(div.get_text().strip()) for div in result_divs]
             obs = f"Could not find {entity}. Similar: {result_titles[:5]}."
         else:
-            local_page = [p.get_text().strip()
-                          for p in soup.find_all("p") + soup.find_all("ul")]
+            local_page = [
+                p.get_text().strip() for p in soup.find_all("p") + soup.find_all("ul")
+            ]
             if any("may refer to:" in p for p in local_page):
                 obs = self.invoke("[" + entity + "]")
             else:
@@ -94,23 +93,16 @@ class WikiPediaSearchTool(Tool):
         return obs, 0, False, {}
 
     def description(self) -> str:
-        return "WikiPediaSearch(entity), A tool to search entity, view content and disambiguate entity on Wikipedia.\n" + \
-            "Current endpoint for each function is simple and you should only use exact entity name as input for search and disambiguate. And the keyword input to lookup api should also be simple like one or two words.\n" + \
-            "Some Tips to use the APIs bertter:\n" +\
-            "1. When the search api doesn't find the corresponding page, you should search a related entity in the return list.\n" + \
-            "2. You can only search one entity name in each action, so, don't concat multiple entity names in one search input.\n" +\
-            "3. The lookup api can only be used after search api since it depends on the result page of search.\n" +\
-            "4. When search api result in an entity page that is not related, you should disambiguate the searched entity to find other entities with the same name.\n" +\
-            "5. Don't over rely one this simple tool, you may figure out the next action based on your own knowledge."
+        return "WikiPediaSearch(entity), A tool to search entity on Wikipedia. When the search api doesn't find the corresponding page, you should search a related entity in the return list."
 
 
 class WikiLookUpTool(Tool):
     def __init__(self):
         super().__init__()
-        self.invoke_label = "WikiLookUp"
+        self.invoke_label = "WikiPediaLookUp"
 
     def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
-        keyword = invoke_data
+        keyword = invoke_data.strip().strip("'").strip('"')
         lookup_keyword = currentPage.lookup_keyword
         if lookup_keyword != keyword:  # reset lookup
             currentPage.construct_lookup_list(keyword)
@@ -123,22 +115,20 @@ class WikiLookUpTool(Tool):
             index = lookup_list[lookup_cnt]
             before_sentence_num = min(index, 1)
             max_sentence_num = 3  # 一共3句话
-            lookup_result = ' '.join(
-                sentences[index - before_sentence_num: index - before_sentence_num + max_sentence_num])
-            obs = f"(Result {lookup_cnt + 1} / {len(lookup_list)}) " + \
-                lookup_result
+            lookup_result = " ".join(
+                sentences[
+                    index
+                    - before_sentence_num : index
+                    - before_sentence_num
+                    + max_sentence_num
+                ]
+            )
+            obs = f"(Result {lookup_cnt + 1} / {len(lookup_list)}) " + lookup_result
             currentPage.lookup_cnt += 1
         return obs, 0, False, {}
 
     def description(self) -> str:
-        return "WikiLookUp(keyword), A tool to search entity, view content and disambiguate entity on Wikipedia.\n" + \
-            "Current endpoint for each function is simple and you should only use exact entity name as input for search and disambiguate. And the keyword input to lookup api should also be simple like one or two words.\n" + \
-            "Some Tips to use the APIs bertter:\n" +\
-            "1. When the search api doesn't find the corresponding page, you should search a related entity in the return list.\n" + \
-            "2. You can only search one entity name in each action, so, don't concat multiple entity names in one search input.\n" +\
-            "3. The lookup api can only be used after search api since it depends on the result page of search.\n" +\
-            "4. When search api result in an entity page that is not related, you should disambiguate the searched entity to find other entities with the same name.\n" +\
-            "5. Don't over rely one this simple tool, you may figure out the next action based on your own knowledge."
+        return "WikiPediaLookUp(keyword), A tool to view content on Wikipedia. When the search api doesn't find the corresponding page, you should search a related entity in the return list."
 
 
 class WikiPediaDisambiguationTool(Tool):
@@ -147,7 +137,7 @@ class WikiPediaDisambiguationTool(Tool):
         self.invoke_label = "WikiPediaDisambiguation"
 
     def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
-        entity = invoke_data
+        entity = invoke_data.strip().strip("'").strip('"')
         url = f"https://en.wikipedia.org/wiki/{entity}_(disambiguation)"
         # url = f"https://en.wikipedia.org{href}"
         response = requests.get(url)
@@ -159,7 +149,11 @@ class WikiPediaDisambiguationTool(Tool):
         titles = []
         for item in list_items:
             link = item.find("a")
-            if link and entity.lower() in item.get_text().lower() and "/wiki" in link["href"]:
+            if (
+                link
+                and entity.lower() in item.get_text().lower()
+                and "/wiki" in link["href"]
+            ):
                 titles.append(link.get_text())
                 # print(f"{link.get_text()} - {link['href']}")
                 # print(item.get_text())
@@ -172,11 +166,4 @@ class WikiPediaDisambiguationTool(Tool):
         return obs, 0, False, {}
 
     def description(self) -> str:
-        return "WikiPediaDisambiguation(entity), A tool to search entity, view content and disambiguate entity on Wikipedia.\n" + \
-            "Current endpoint for each function is simple and you should only use exact entity name as input for search and disambiguate. And the keyword input to lookup api should also be simple like one or two words.\n" + \
-            "Some Tips to use the APIs bertter:\n" +\
-            "1. When the search api doesn't find the corresponding page, you should search a related entity in the return list.\n" + \
-            "2. You can only search one entity name in each action, so, don't concat multiple entity names in one search input.\n" +\
-            "3. The lookup api can only be used after search api since it depends on the result page of search.\n" +\
-            "4. When search api result in an entity page that is not related, you should disambiguate the searched entity to find other entities with the same name.\n" +\
-            "5. Don't over rely one this simple tool, you may figure out the next action based on your own knowledge."
+        return "WikiPediaDisambiguation(entity), A tool to disambiguate entity on Wikipedia. When the search api doesn't find the corresponding page, you should search a related entity in the return list."

@@ -34,8 +34,9 @@ class ExecuteCodeTool(Tool):
         self.interpreter = CodeInterpreter()
 
     def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
-        code = invoke_data
+        code = invoke_data.strip().strip("```")
+        code = code.replace("\\n", "\n")
         return self.interpreter.execute_code(code), 0, False, {}
 
     def description(self) -> str:
-        return "ExecuteCode(code), execute Python expressions with Python Interpreter, can be used as a simple calculator e.g.,\"(123 + 234) / 23 * 19. You CANNOT use other tools when using this tool.\""
+        return "ExecuteCode(code), execute Python expressions with Python Interpreter, can be used as a simple calculator e.g.,\"(123 + 234) / 23 * 19.\""

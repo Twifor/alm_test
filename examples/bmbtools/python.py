@@ -37,6 +37,7 @@ class RunPythonTool(Tool):
 
     def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
         invoke_data = invoke_data.strip().strip("```")
+        invoke_data = invoke_data.replace("\\n", "\n")
         return self.python_repl.run(invoke_data), 0, False, {}
 
     def description(self) -> str:

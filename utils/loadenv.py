@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+import openai
 
 
 class Env:
@@ -9,7 +10,8 @@ class Env:
     def openai_key(self):
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise ValueError("Environment variables are missing.")
+            raise ValueError("Environment varables are missing.")
+        openai.api_key = api_key
         return api_key
 
     def weather_key(self):
