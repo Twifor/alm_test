@@ -9,10 +9,10 @@ from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 import numpy as np
 
-from gentopia.memory.vectorstores.vectorstore import VectorStore
-from gentopia.memory.embeddings import Embeddings
-from gentopia.memory.document import Document
-from gentopia.memory.utils import maximal_marginal_relevance
+from memory.vectorstores.vectorstore import VectorStore
+from memory.embeddings import Embeddings
+from memory.document import Document
+from memory.utils import maximal_marginal_relevance
 
 
 logger = logging.getLogger(__name__)

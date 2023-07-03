@@ -25,7 +25,7 @@ from tenacity import (
     stop_after_attempt,
     wait_exponential,
 )
-from gentopia.memory.utils import get_from_dict_or_env
+from memory.utils import get_from_dict_or_env
 
 logger = logging.getLogger(__name__)
 

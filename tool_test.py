@@ -40,12 +40,12 @@ agent1 = ReActToolAgent(llm, google_search_tool)
 agent2 = ReActToolAgent(llm, execute_python_tool)
 agent3 = ReActToolAgent(llm, answer_tool)
 
-network = AgentNetWork()
+network = AgentNetWork(llm)
 network.addToolAgent(agent0)
 network.addToolAgent(agent1)
 network.addToolAgent(agent2)
 network.addToolAgent(agent3)
-
+ 
 # network.link(begin_tool, google_search_tool)
 network.link(begin_tool, execute_python_tool)
 network.link(execute_python_tool, answer_tool)

@@ -34,7 +34,7 @@ class ExecuteCodeTool(Tool):
         self.interpreter = CodeInterpreter()
 
     def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
-        code = invoke_data.strip().strip("```")
+        code = invoke_data.strip().strip("'").strip('"').strip("```")
         code = code.replace("\\n", "\n")
         return self.interpreter.execute_code(code), 0, False, {}
 

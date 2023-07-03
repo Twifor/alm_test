@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List
 from abc import ABC, abstractmethod
-from gentopia.memory.serializable import Serializable
+from memory.serializable import Serializable
 
 class BaseMemory(Serializable, ABC):
     """Base interface for memory in chains."""

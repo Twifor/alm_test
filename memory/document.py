@@ -1,4 +1,4 @@
-from gentopia.memory.serializable import Serializable
+from memory.serializable import Serializable
 from pydantic import Field
 
 

@@ -1,4 +1,4 @@
-from agent.state_memory import ReActRawHistoryState
+from agent.state_memory import *
 from agent.tools import ToolList, Tool
 from agent.llm import GPT3_5LLM
 from utils.logger import logger
@@ -10,7 +10,7 @@ class ReActToolAgent:
         self,
         llm: GPT3_5LLM,
         tool: Tool,
-        state: ReActRawHistoryState = None,
+        state:ReActBaseHistoryState = None,
     ):
         self.llm = llm
         self.toolList = ToolList()
@@ -58,11 +58,11 @@ class ReActToolAgent:
 
 
 class AgentNetWork:
-    def __init__(self):
+    def __init__(self, llm:LLM=None):
         self.tool_label2tool = {}
         self.tool_label2agent = {}
         self.links = set()
-        self.history_state = ReActRawHistoryState()
+        self.history_state:ReActBaseHistoryState = ReActRawHistoryState()
         self.now = None
         self.current_tool_label = ""
         self.task = ""
@@ -146,7 +146,6 @@ class AgentNetWork:
             reward,
             isDone,
         ) = current_agent.step()  # take next step
-        # print(prompt)
         self.history_state.updateState(
             thought, action, obs, rk=False
         )  # update history state

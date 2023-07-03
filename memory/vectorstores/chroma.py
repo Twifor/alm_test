@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Ty
 
 import numpy as np
 
-from gentopia.memory.document import Document
-from gentopia.memory.embeddings import Embeddings
-from gentopia.memory.vectorstores.vectorstore import VectorStore
-from gentopia.memory.utils import maximal_marginal_relevance
+from memory.document import Document
+from memory.embeddings import Embeddings
+from memory.vectorstores.vectorstore import VectorStore
+from memory.utils import maximal_marginal_relevance
 
 if TYPE_CHECKING:
     import chromadb
