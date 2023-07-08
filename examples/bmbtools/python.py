@@ -35,7 +35,7 @@ class RunPythonTool(Tool):
         self.invoke_label = "RunPython"
         self.python_repl = PythonREPL()
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         invoke_data = invoke_data.strip().strip("```")
         invoke_data = invoke_data.replace("\\n", "\n")
         return self.python_repl.run(invoke_data), 0, False, {}

@@ -23,7 +23,7 @@ class GetDistanceTool(Tool):
         self.invoke_label = "GetDistance"
         self.key = key
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         # return "136.559 miles", 0, False, {}
         start, end = invoke_data.strip().split(",")
         url = (
@@ -56,7 +56,7 @@ class GetRouteTool(Tool):
         self.invoke_label = "GetRoute"
         self.key = key
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         start, end = invoke_data.strip().split(",")
         url = (
             BASE_URL
@@ -90,7 +90,7 @@ class GetCoordinatesTool(Tool):
         self.invoke_label = "GetCoordinates"
         self.key = key
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         coordinates = get_coordinates(invoke_data, self.key)
         return coordinates, 0, False, {}
 
@@ -104,7 +104,7 @@ class SearchNearbyTool(Tool):
         self.invoke_label = "SearchNearby"
         self.key = key
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         KEY = self.key
         search_term, latitude, longitude, places, radius = invoke_data.strip().split(
             ","

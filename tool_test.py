@@ -20,36 +20,62 @@ from examples.bmbtools.wikipedia import (
 )
 from examples.bmbtools.answer import AnswerTool, BeginTool
 from examples.bmbtools.python import RunPythonTool
-from examples.bmbtools.google_search import GoogleSearchTool
+from examples.bmbtools.google_search import GoogleSearchTool, GoogleSearch2Tool
 from examples.bmbtools.code_interpreter import ExecuteCodeTool
+from examples.bmbtools.gradio import ImageCaptionTool, ImageToPromptTool, OCRTool
+from examples.scienceQA.read_lecture import ReadLectureTool
 from agent.agent_network import ReActToolAgent, AgentNetWork
 from agent.llm import GPT3_5LLM, Davinci003LLM
 from utils.loadenv import Env
-
+import openai
+import json
 
 env = Env()
 llm = GPT3_5LLM(env.openai_key())
+tools = [BeginTool(), AnswerTool(lambda x: True), WikiPediaSearchTool(), WikiLookUpTool(), WikiPediaDisambiguationTool(), GoogleSearch2Tool(), OCRTool(), ImageCaptionTool(), GoogleSearchTool(env.searper_key()), ExecuteCodeTool(), RunPythonTool(), ReadLectureTool("")]
+agents = [ReActToolAgent(llm, tool) for tool in tools]
+network = AgentNetWork()
+for agent in agents:
+    network.addToolAgent(agent)
+for i in range(2, len(tools)):
+    network.link(tools[0], tools[i])
+network.allLink(tools[1])
+for i in range(2, len(tools)):
+    for j in range(2, len(tools)):
+        if i != j:
+            network.link(tools[i], tools[j])
 
-google_search_tool = GoogleSearchTool(env.searper_key())
-execute_python_tool = ExecuteCodeTool()
-answer_tool = AnswerTool(lambda x: int(x) == 55, 55)
-begin_tool = BeginTool()
+for i in range(0, 100):
+    file = open(f"dataset/scienceQA/train/{i}.json", "r")
+    obj = json.loads(file.read())
+    query = obj["question"] + " You must choose one answer from the following choices:\n"
+    query += "Choices: " + str(obj["choices"]) + "\n"
+    if "image" in obj.keys():
+        query += "This question has a related image, you can use some tools to read from this image to help you to solve this problem.\n"
+        query += f"The path of this image: dataset/scienceQA/train/{i}.jpg.\n"
+    ans = obj["choices"][obj["answer"]]
+    lecture = obj["lecture"]
 
-agent0 = ReActToolAgent(llm, begin_tool)
-agent1 = ReActToolAgent(llm, google_search_tool)
-agent2 = ReActToolAgent(llm, execute_python_tool)
-agent3 = ReActToolAgent(llm, answer_tool)
+    tools[1].func = lambda x: EM(x,ans)
+    tools[-1].knowledge = lecture
 
-network = AgentNetWork(llm)
-network.addToolAgent(agent0)
-network.addToolAgent(agent1)
-network.addToolAgent(agent2)
-network.addToolAgent(agent3)
- 
-# network.link(begin_tool, google_search_tool)
-network.link(begin_tool, execute_python_tool)
-network.link(execute_python_tool, answer_tool)
+    network.init(tools[0], query)
+    network.steps(max_steps=12)
+    network.addExternalLog({"ground_truth": ans, "token_use": llm.tokens})
+    network.saveLog(f"sciQA_{i}")
 
-# network.init(begin_tool, "Define x = difference of ages between Obama and Biden. Calculate sqrt(x) and round it to an integer and the result is defined by y. Finally calaulate y^2 Fibonacci number.")
-network.init(begin_tool, "Tell me 10th Fibonacci number.")
-network.steps()
+# file = open("dataset/tableMWP/problems_train.json", "r")
+# obj:dict = json.loads(file.read())
+# data = []
+# for i in obj.values():
+#     data.append(i)
+# for i in range(98, 100):
+#     d = data[i]
+#     query = d["question"] + "\n"
+#     query += "You need to read from this table to generate your answer:"
+#     query += d["table"]
+#     if d["ans_type"].endswith("number"):
+#         f = lambda x: abs(eval(x)-eval(d["answer"].replace(',',''))) < 0.001
+#     else:
+#         f = lambda x: EM(x, d["answer"])
+#     solve(query, f, d["answer"], None, i)

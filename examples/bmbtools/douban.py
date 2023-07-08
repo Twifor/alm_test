@@ -134,7 +134,7 @@ class PrintDetailTool(Tool):
         self.invoke_label = "PrintDetail"
         self.douban_api = DoubanAPI()
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         args = invoke_data
         args = re.findall(r'\b\w+\b', args)
         filmName = args[0]
@@ -183,7 +183,7 @@ class NowPlayingOutFilterTool(Tool):
         self.invoke_label = "NowPlayingOutFilter"
         self.douban_api = DoubanAPI()
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         args = invoke_data
         args = re.findall(r'\b\w+\b', args)
         region = args[0]
@@ -250,7 +250,7 @@ class ComingOutFilterTool(Tool):
         self.invoke_label = "ComingOutFilter"
         self.douban_api = DoubanAPI()
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         args = invoke_data
         args = re.findall(r'\b\w+\b', args)
         region = args[0]

@@ -9,7 +9,7 @@ class ActivateTool(Tool):
         self.invoke_label = "Activate"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj = invoke_data
         return self.sciEnv.step("activate " + obj.strip().strip('"').strip("'"))
 
@@ -23,7 +23,7 @@ class CloseTool(Tool):
         self.invoke_label = "Close"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj = invoke_data
         return self.sciEnv.step("close " + obj.strip().strip('"').strip("'"))
 
@@ -37,7 +37,7 @@ class DeactivateTool(Tool):
         self.invoke_label = "Deactivate"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj = invoke_data
         return self.sciEnv.step("deactivate " + obj.strip().strip('"').strip("'"))
 
@@ -51,7 +51,7 @@ class DunkTool(Tool):
         self.invoke_label = "Dunk"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj1, obj2 = invoke_data.split(",")
         return self.sciEnv.step(f"dunk {obj1} in {obj2}")
 
@@ -65,7 +65,7 @@ class EatTool(Tool):
         self.invoke_label = "Eat"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj = invoke_data
         return self.sciEnv.step(f"eat {obj}")
 
@@ -79,7 +79,7 @@ class FlushTool(Tool):
         self.invoke_label = "Flush"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj = invoke_data
         return self.sciEnv.step(f"flush {obj}")
 
@@ -93,7 +93,7 @@ class FocusOnTool(Tool):
         self.invoke_label = "FocusOn"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj = invoke_data
         return self.sciEnv.step(f"focus on {obj}")
 
@@ -107,7 +107,7 @@ class GoTool(Tool):
         self.invoke_label = "Go"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj = invoke_data
         return self.sciEnv.step(f"go {obj}")
 
@@ -121,7 +121,7 @@ class InventoryTool(Tool):
         self.invoke_label = "Inventory"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         return self.sciEnv.step(f"inventory")
 
     def description(self) -> str:
@@ -134,7 +134,7 @@ class LookAroundTool(Tool):
         self.invoke_label = "LookAround"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         return self.sciEnv.step(f"look around")
 
     def description(self) -> str:
@@ -147,7 +147,7 @@ class LookAtTool(Tool):
         self.invoke_label = "LookAt"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj = invoke_data
         return self.sciEnv.step(f"look at {obj}")
 
@@ -161,7 +161,7 @@ class LookInTool(Tool):
         self.invoke_label = "LookIn"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj = invoke_data
         return self.sciEnv.step(f"look in {obj}")
 
@@ -175,7 +175,7 @@ class MixTool(Tool):
         self.invoke_label = "Mix"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj = invoke_data
         return self.sciEnv.step(f"mix {obj}")
 
@@ -189,7 +189,7 @@ class MoveTool(Tool):
         self.invoke_label = "Move"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj1, obj2 = invoke_data.split(",")
         return self.sciEnv.step(f"move {obj1} to {obj2}")
 
@@ -203,7 +203,7 @@ class OpenTool(Tool):
         self.invoke_label = "Open"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj = invoke_data
         return self.sciEnv.step(f"open {obj}")
 
@@ -217,7 +217,7 @@ class PickUpTool(Tool):
         self.invoke_label = "PickUp"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj = invoke_data
         return self.sciEnv.step(f"pick up {obj}")
 
@@ -231,7 +231,7 @@ class PourTool(Tool):
         self.invoke_label = "Pour"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj1, obj2 = invoke_data.split(",")
         return self.sciEnv.step(f"pour {obj1} in {obj2}")
 
@@ -245,7 +245,7 @@ class PutDownTool(Tool):
         self.invoke_label = "PutDown"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj = invoke_data
         return self.sciEnv.step(f"put down {obj}")
 
@@ -259,7 +259,7 @@ class ReadTool(Tool):
         self.invoke_label = "Read"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj = invoke_data
         return self.sciEnv.step(f"read {obj}")
 
@@ -273,7 +273,7 @@ class ResetTaskTool(Tool):
         self.invoke_label = "ResetTask"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         return self.sciEnv.step(f"reset task")
 
     def description(self) -> str:
@@ -286,7 +286,7 @@ class TaskTool(Tool):
         self.invoke_label = "Task"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         return self.sciEnv.step(f"task")
 
     def description(self) -> str:
@@ -299,7 +299,7 @@ class TeleportTool(Tool):
         self.invoke_label = "Teleport"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj = invoke_data
         return self.sciEnv.step(f"teleport {obj}")
 
@@ -313,7 +313,7 @@ class UseTool(Tool):
         self.invoke_label = "Use"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         obj1, obj2 = invoke_data.split(",")
         return self.sciEnv.step(f"use {obj1} on {obj2}")
 
@@ -327,7 +327,7 @@ class WaitTool(Tool):
         self.invoke_label = "Wait"
         self.sciEnv = sciEnv
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         return self.sciEnv.step(f"wait")
 
     def description(self) -> str:

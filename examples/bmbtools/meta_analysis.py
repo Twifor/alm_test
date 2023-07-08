@@ -451,7 +451,7 @@ class SearchLiteratureTool(Tool):
         super().__init__()
         self.invoke_label = "SearchLiterature"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         topic, maxnum, term = invoke_data.split(",")
         topic = topic.strip().strip("'").strip('"')
         term = term.strip().strip("'").strip('"')
@@ -495,7 +495,7 @@ class SplitCriteriaTool(Tool):
         super().__init__()
         self.invoke_label = "SplitCriteria"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         criteria = invoke_data
         criteria = criteria.strip().strip("'").strip('"')
         ques = split_question(criteria)
@@ -515,7 +515,7 @@ class LiteratureFilterTool(Tool):
         super().__init__()
         self.invoke_label = "LiteratureFilter"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         concat_path = invoke_data
         concat_path = concat_path.strip("'").strip('"')
         print(invoke_data)
@@ -569,7 +569,7 @@ class DrawTableTool(Tool):
         super().__init__()
         self.invoke_label = "DrawTable"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         literature_path_and_topic = invoke_data
         literature_path_and_topic = (
             literature_path_and_topic.strip().strip("'").strip('"')
@@ -602,7 +602,7 @@ class CombineTableTool(Tool):
         super().__init__()
         self.invoke_label = "CombineTable"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         literature_path, table_path, topic = invoke_data.split(",")
         literature_path = literature_path.strip().strip("'").strip('"')
         table_path = table_path.strip().strip("'").strip('"')
@@ -631,7 +631,7 @@ class GenerateSummaryTool(Tool):
         super().__init__()
         self.invoke_label = "GenerateSummary"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         topic, table_path = invoke_data.split(",")
         table_path = table_path.strip().strip("'").strip('"')
         topic = topic.strip().strip("'").strip('"')
@@ -653,7 +653,7 @@ class PrintLiteratureTool(Tool):
         super().__init__()
         self.invoke_label = "PrintLiterature"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         literature_path, print_num = invoke_data.split(",")
         literature_path = literature_path.strip().strip("'").strip('"')
         print_num = print_num.strip().strip("'").strip('"')
@@ -683,7 +683,7 @@ class PrintTableFileTool(Tool):
         super().__init__()
         self.invoke_label = "PrintTableFile"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         table_path = invoke_data
         table_path = table_path.strip().strip("'").strip('"')
         try:

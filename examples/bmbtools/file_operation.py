@@ -8,7 +8,7 @@ class WriteFileTool(Tool):
         super().__init__()
         self.invoke_label = "WriteFile"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         spliter = invoke_data.find(",")
         file_path = invoke_data[:spliter]
         text = invoke_data[spliter+1:]
@@ -32,7 +32,7 @@ class ReadFileTool(Tool):
         super().__init__()
         self.invoke_label = "ReadFile"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         file_path = invoke_data
         read_path = (
             Path(file_path)

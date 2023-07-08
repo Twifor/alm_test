@@ -21,7 +21,7 @@ class TutorialTool(Tool):
         )
         self.chain = LLMChain(llm=llm, prompt=prompt)
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         text = invoke_data
         result = self.chain.run(text)
         return result, 0, False, {}

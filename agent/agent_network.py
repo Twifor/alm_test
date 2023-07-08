@@ -62,7 +62,10 @@ class AgentNetWork:
         self.tool_label2tool = {}
         self.tool_label2agent = {}
         self.links = set()
-        self.history_state:ReActBaseHistoryState = ReActRawHistoryState()
+        self.clear()
+    
+    def clear(self):
+        self.history_state = ReActRawHistoryState()
         self.now = None
         self.current_tool_label = ""
         self.task = ""
@@ -72,6 +75,7 @@ class AgentNetWork:
         self.tool_info = {}
 
     def output_TAO(self, now_tool_label, next_tools, thought, action, observation):
+        next_tools = [(tool.invoke_label, float("%.3f" % tool.conf)) for tool in next_tools]
         print(f"At step \033[31m{self.current_steps + 1}\033[0m:")
         print(f"\033[35mToolAgent\033[0m: {now_tool_label}")
         print(f"\033[35mNext Tools\033[0m: {next_tools}")
@@ -121,6 +125,7 @@ class AgentNetWork:
         # print(f"Link {cnt} edges successfully.")
 
     def init(self, begin_tool, task):
+        self.clear()
         begin_tool_label = begin_tool.invoke_label
         if begin_tool_label not in self.tool_label2agent.keys():
             raise ValueError(f"tool_label {begin_tool_label} not found!")
@@ -131,6 +136,7 @@ class AgentNetWork:
         self.log_history["query"] = task
         self.log_history["begin_tool"] = begin_tool.invoke_label
         self.log_history["chains"] = []
+    
 
     def step(self):
         if self.isFinished:
@@ -146,6 +152,7 @@ class AgentNetWork:
             reward,
             isDone,
         ) = current_agent.step()  # take next step
+        # print(prompt)
         self.history_state.updateState(
             thought, action, obs, rk=False
         )  # update history state
@@ -159,7 +166,7 @@ class AgentNetWork:
         self.tool_info.update(self.now.toolList.info)
         self.output_TAO(
             self.current_tool_label,
-            list(self.now.toolList.tool_map.keys()),
+            list(self.now.toolList.toolListWithConf()),
             thought,
             action,
             obs,

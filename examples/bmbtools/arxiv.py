@@ -9,7 +9,7 @@ class SearchArxivTool(Tool):
         super().__init__()
         self.invoke_label = "SearchArxiv"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         arxiv_exceptions: Any  # :meta private:
         top_k_results: int = 3
         ARXIV_MAX_QUERY_LENGTH = 300

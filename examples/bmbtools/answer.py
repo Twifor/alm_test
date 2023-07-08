@@ -9,12 +9,12 @@ class AnswerTool(Tool):
         self.func = verification_func
         self.gt = gt
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         res = invoke_data
         is_correct = self.func(res)
         return (
             "You are CORRECT." if is_correct else "You are INCORRECT.",
-            1 if is_correct else 0,
+            1 if is_correct else -1,
             True,
             {"gt_answer": self.gt} if self.gt is not None else {},
         )

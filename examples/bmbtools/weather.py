@@ -11,7 +11,7 @@ class GetWeatherTool(Tool):
         self.key = key
         self.invoke_label = "GetWeather"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         URL_CURRENT_WEATHER = "http://api.weatherapi.com/v1/current.json"
         location = invoke_data
         param = {
@@ -50,7 +50,7 @@ class ForcastWeatherTool(Tool):
         self.key = key
         self.invoke_label = "ForcastWeather"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         '''Forecast weather in the upcoming days.
         '''
         URL_FORECAST_WEATHER = "http://api.weatherapi.com/v1/forecast.json"

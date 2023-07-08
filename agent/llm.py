@@ -2,7 +2,7 @@ import openai
 from openai.error import RateLimitError, ServiceUnavailableError
 import time
 import warnings
-# from retry import retry
+from retry import retry
 
 
 class LLM:
@@ -33,7 +33,7 @@ class Davinci003LLM(LLM):
         self.presence_penalty = presence_penalty
         self.tokens = 0
 
-    # @retry(Exception, tries=3, delay=1)
+    @retry(Exception, tries=3, delay=1)
     def response(self, prompt, stop="\n"):
         response = openai.Completion.create(
             model=self.model,
@@ -69,7 +69,7 @@ class GPT3_5LLM(LLM):
         self.presence_penalty = presence_penalty
         self.tokens = 0
 
-    # @retry(Exception, tries=8, delay=1)
+    @retry(Exception, tries=8, delay=1)
     def response(
         self,
         user,

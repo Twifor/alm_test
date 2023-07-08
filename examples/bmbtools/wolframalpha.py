@@ -13,7 +13,7 @@ class GetWolframAlphaResultsTool(Tool):
         self.invoke_label = "GetWolframAlphaResults"
         self.appid = appid
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         input = invoke_data
         URL = "https://api.wolframalpha.com/v2/query"
         APPID = self.appid

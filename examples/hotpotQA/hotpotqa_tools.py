@@ -60,7 +60,7 @@ class SearchTool(Tool):
         self.wikiEnv = wikiEnv
         self.invoke_label = "Search"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         return self.wikiEnv.search(invoke_data), 0, False, {}
 
     def description(self) -> str:
@@ -73,7 +73,7 @@ class LookupTool(Tool):
         self.wikiEnv = wikiEnv
         self.invoke_label = "Lookup"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         return self.wikiEnv.lookup(invoke_data), 0, False, {}
 
     def description(self) -> str:
@@ -86,7 +86,7 @@ class FinishTool(Tool):
         self.wikiEnv = wikiEnv
         self.invoke_label = "Finish"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         res = self.wikiEnv.finish(invoke_data)
         return res[0], res[1], True, {"answer": invoke_data, "gt_answer": self.wikiEnv.gt_answer}
 

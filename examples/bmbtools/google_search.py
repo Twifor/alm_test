@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 import aiohttp
 from pydantic.main import BaseModel
 from pydantic.class_validators import root_validator
+from googlesearch import search
 
 
 class GoogleSerperAPIWrapper:
@@ -106,9 +107,29 @@ class GoogleSearchTool(Tool):
         self.invoke_label = "GoogleSearch"
         self.api_wrapper = GoogleSerperAPIWrapper(key)
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         query = invoke_data
         return str(self.api_wrapper.run(query)), 0, False, {}
 
     def description(self) -> str:
-        return "GoogleSearch(query), Run query through GoogleSearch and parse result. Useful for when you need to answer questions about current events. Input should be a search query. Output is a JSON object of the query results."
+        return "GoogleSearch(query), Run query through GoogleSearch and parse result. Useful for when you need to answer questions about current events. Input should be a search query."
+
+class GoogleSearch2Tool(Tool):
+    def __init__(self, limit:int = 3):
+        super().__init__()
+        self.invoke_label = "GoogleSearch2"
+        self.limit = limit
+
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
+        query = invoke_data
+        res = ""
+        cnt = 0 
+        for item in search(query, advanced=True):
+            res += item.title + ", " + item.description + "\n"
+            cnt += 1
+            if cnt > self.limit:
+                break
+        return res, 0, False, {}
+
+    def description(self) -> str:
+        return "GoogleSearch2(query), Run query through GoogleSearch and parse result. Useful for when you need to answer questions about current events. Input should be a search query. Output is a JSON object of the query results."

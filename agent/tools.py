@@ -1,12 +1,14 @@
 from typing import Union, Dict
 import warnings
-
+import numpy as np
 
 class Tool:
-    def __init__(self):
+    confidence: int = 0
+    def __init__(self, confidence : float = 0.0):
         self.invoke_label = "none"
+        self.confidence = confidence
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         raise NotImplementedError("You need to implement this tool.")
 
     def description(self) -> str:
@@ -14,10 +16,11 @@ class Tool:
 
 
 class ToolList:
-    def __init__(self):
+    def __init__(self, threshold : float = 0.0):
         self.tool_map = {}
         self.examples = []
         self.info = {}
+        self.threshold = threshold
 
     def registerTool(self, tool: Tool) -> bool:
         tool_label = tool.invoke_label
@@ -33,17 +36,31 @@ class ToolList:
 
     def addExample(self, example: str):
         self.examples.append(example)
+    
+    def toolListWithConf(self):
+        tools = [tool for _, tool in self.tool_map.items()]
+        confidence = [np.tanh(tool.confidence) for tool in tools]
+        # using softmax to update confidence
+        confidence = np.exp(confidence) / np.sum(np.exp(confidence))
+        for i in range(0, len(tools)):
+            tools[i].conf = confidence[i]
+        tools = filter(lambda x: x.conf > self.threshold, tools)
+        tools = sorted(tools, key=lambda x: x.conf, reverse=True)
+        return tools
 
     def description(self, use_examples=True):
+        tools = self.toolListWithConf()
+
         if self.num() == 0:
-            warnings.warn("This toollist has not registed any tool yet.")
-        if self.num() == 1:
+            warnings.warn("This toollist has not registed any tool yet or all of tools are low-confident.")
+        if len(tools) == 1:
             res = "There is one action or tool you can use:\n"
         else:
-            res = "There are %d actions or tools you can use:\n" % self.num()
+            res = f"There are {len(tools)} actions or tools you can use.\n"
+            res += "For each tool, a score of confidence in [0, 1] will be provided. The tool with higher confidence may have better performance and it is recommended to invoke it.\n" 
         cnt = 1
-        for _, v in self.tool_map.items():
-            res += "%d. %s\n" % (cnt, v.description())
+        for tool in tools:
+            res += "%d. [Confidence: %.2f] %s\n" % (cnt, tool.conf, tool.description())
             cnt += 1
         if use_examples:
             res += "Here are some examples.\n"
@@ -55,7 +72,7 @@ class ToolList:
     def num(self):
         return len(self.tool_map)
 
-    def invoke(self, invoke_cmd) -> Union[str, int, bool]:
+    def invoke(self, invoke_cmd) -> Union[str, float, bool]:
         try:
             invoke_id = invoke_cmd[0 : invoke_cmd.find("(")].strip()
             args = invoke_cmd[invoke_cmd.find("(") + 1 : invoke_cmd.rfind(")")]
@@ -71,7 +88,7 @@ class ToolList:
                 False,
             )
         except:
-            return "Invalid invoke_cmd %s!" % invoke_cmd, 0, False
+            return "Invalid invoke_cmd %s!" % invoke_cmd, -0.2, False
 
     def toolInfo(self):
         return self.info

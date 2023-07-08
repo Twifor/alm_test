@@ -47,7 +47,7 @@ class CreateFileTool(Tool):
         self.invoke_label = "CreateFile"
 
     @runtime_update_docstring(updated_docstring_create_file)
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         theme = invoke_data
         global ppt_file
         ppt_file = Presentation(os.path.join(TEMPLATE_DIR, f"{theme}.pptx"))
@@ -62,7 +62,7 @@ class GetImageTool(Tool):
         super().__init__()
         self.invoke_label = "GetImage"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         keywords = invoke_data
         picture_url = IMAGE_BED_PATTERN.format(keywords)
         response = requests.get(picture_url)
@@ -80,7 +80,7 @@ class AddFirstPageTool(Tool):
         super().__init__()
         self.invoke_label = "AddFirstPage"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         global ppt_file
         title, subtitle = invoke_data.split(",")
         slide = ppt_file.slides.add_slide(
@@ -103,7 +103,7 @@ class AddTextPageTool(Tool):
         super().__init__()
         self.invoke_label = "AddTextPage"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         title, bullet_items = invoke_data.split(",")
         global ppt_file
         slide = ppt_file.slides.add_slide(ppt_file.slide_layouts[1])
@@ -132,7 +132,7 @@ class AddTextImagePageTool(Tool):
         super().__init__()
         self.invoke_label = "AddTextImagePage"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         title, bullet_items, image = invoke_data.split(",")
         global ppt_file
         slide = ppt_file.slides.add_slide(ppt_file.slide_layouts[3])
@@ -169,7 +169,7 @@ class SubmitFileTool(Tool):
         super().__init__()
         self.invoke_label = "SubmitFile"
 
-    def invoke(self, invoke_data="") -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data="") -> Union[str, float, bool, Dict]:
         global ppt_file
         file_path = os.path.join(CACHE_DIR, f"{_return_timestamp()}.pptx")
         ppt_file.save(file_path)

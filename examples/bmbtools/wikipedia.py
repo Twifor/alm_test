@@ -65,7 +65,7 @@ class WikiPediaSearchTool(Tool):
         super().__init__()
         self.invoke_label = "WikiPediaSearch"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         entity = invoke_data.strip().strip("'").strip('"')
         entity_ = entity.replace(" ", "+")
         search_url = f"https://en.wikipedia.org/w/index.php?search={entity_}"
@@ -101,7 +101,7 @@ class WikiLookUpTool(Tool):
         super().__init__()
         self.invoke_label = "WikiPediaLookUp"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         keyword = invoke_data.strip().strip("'").strip('"')
         lookup_keyword = currentPage.lookup_keyword
         if lookup_keyword != keyword:  # reset lookup
@@ -136,7 +136,7 @@ class WikiPediaDisambiguationTool(Tool):
         super().__init__()
         self.invoke_label = "WikiPediaDisambiguation"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         entity = invoke_data.strip().strip("'").strip('"')
         url = f"https://en.wikipedia.org/wiki/{entity}_(disambiguation)"
         # url = f"https://en.wikipedia.org{href}"

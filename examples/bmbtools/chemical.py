@@ -89,7 +89,7 @@ class GetNameTool(Tool):
         super().__init__()
         self.invoke_label = "GetName"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         cid = invoke_data
         return get_name(cid), 0, False, {}
 
@@ -102,7 +102,7 @@ class GetAllNameTool(Tool):
         super().__init__()
         self.invoke_label = "GetAllName"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         cid = invoke_data
         ans = chemical_prop_api.get_name_by_cid(cid)
         return {
@@ -118,7 +118,7 @@ class GetIdByStructTool(Tool):
         super().__init__()
         self.invoke_label = "GetIdByStruct"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         smiles = invoke_data
         cids = chemical_prop_api.get_cid_by_struct(smiles)
         if len(cids) == 0:
@@ -140,7 +140,7 @@ class GetIdTool(Tool):
         super().__init__()
         self.invoke_label = "GetId"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         name = invoke_data
         cids = chemical_prop_api.get_cid_by_name(name)
         if len(cids) > 0:
@@ -176,7 +176,7 @@ class GetPropTool(Tool):
         super().__init__()
         self.invoke_label = "GetProp"
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         cid = invoke_data
         return chemical_prop_api.get_prop_by_cid(cid), 0, False, {}
 

@@ -140,7 +140,7 @@ class RunShellTool(Tool):
         self.invoke_label = "RunShell"
         self.process = get_default_bash_process()
 
-    def invoke(self, invoke_data) -> Union[str, int, bool, Dict]:
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         return self.process.run(invoke_data), 0, False, {}
 
     def description(self) -> str:
