@@ -16,7 +16,7 @@ class Tool:
 
 
 class ToolList:
-    def __init__(self, threshold : float = 0.0):
+    def __init__(self, threshold : float = 0.02):
         self.tool_map = {}
         self.examples = []
         self.info = {}

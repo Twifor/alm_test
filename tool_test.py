@@ -44,8 +44,9 @@ for i in range(2, len(tools)):
     for j in range(2, len(tools)):
         if i != j:
             network.link(tools[i], tools[j])
+# network.recover_tool_score()
 
-for i in range(0, 100):
+for i in range(21, 100):
     file = open(f"dataset/scienceQA/train/{i}.json", "r")
     obj = json.loads(file.read())
     query = obj["question"] + " You must choose one answer from the following choices:\n"

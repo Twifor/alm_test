@@ -2,6 +2,8 @@ from agent.state_memory import *
 from agent.tools import ToolList, Tool
 from agent.llm import GPT3_5LLM
 from utils.logger import logger
+import numpy as np
+import json
 import warnings
 
 
@@ -136,7 +138,45 @@ class AgentNetWork:
         self.log_history["query"] = task
         self.log_history["begin_tool"] = begin_tool.invoke_label
         self.log_history["chains"] = []
+        self.tool_chain = []
     
+    def backward(self, reward):
+        if self.tool_chain == None or self.tool_chain == []:
+            warnings.warn("Nothing to do with backward().")
+            return
+        tool_count = {}
+        for tool in self.tool_chain:
+            if tool.invoke_label not in tool_count.keys():
+                tool_count[tool.invoke_label] = 0
+            else:
+                tool_count[tool.invoke_label] += 1
+        
+        sum_softmax = np.sum(np.exp([x for x in tool_count.values()]))
+        for tool_label in tool_count.keys():
+            tool_count[tool_label] = np.exp(tool_count[tool_label]) / sum_softmax
+        print("Updating tool confidence...")
+        for tool_label in tool_count.keys():
+            tool = self.tool_label2tool[tool_label]
+            delta = reward * (1 + np.arctanh(tool_count[tool_label] - 1e-3))
+            tool.confidence += delta
+            if delta < 0:
+                print(f"\033[31m{tool_label} -= {-delta}\033[0m")
+            else:
+                print(f"\033[32m{tool_label} += {delta}\033[0m")
+        tool_score_record = {}
+        for tool in self.tool_label2tool.values():
+            tool_score_record[tool.invoke_label] = tool.confidence
+        tool_score_file = open("tool_score_record.json", "w")
+        tool_score_file.write(json.dumps(tool_score_record, indent=4, separators=(",", ":")))
+        tool_score_file.close()
+    
+    def recover_tool_score(self, file_name="tool_score_record.json"):
+        tool_score_file = open(file_name, "r")
+        tool_score_record = json.loads(tool_score_file.read())
+        for tool in self.tool_label2tool.values():
+            tool.confidence = tool_score_record[tool.invoke_label]
+        tool_score_file.close()
+
 
     def step(self):
         if self.isFinished:
@@ -174,15 +214,18 @@ class AgentNetWork:
         self.now = next_agent
         if isDone:
             self.isFinished = True
+            self.backward(reward)
 
         self.current_steps += 1
-        if reward != -500:
+        if reward > -500:
             self.current_tool_label = next_tool_label
+            self.tool_chain.append(self.tool_label2tool[self.current_tool_label])
 
     def steps(self, max_steps=12):
         while self.isFinished == False:
             self.step()
             if self.current_steps > max_steps:
+                self.backward(-8.0)
                 break
 
     def saveLog(self, event_id):
