@@ -90,6 +90,7 @@ class GPT3_5LLM(LLM):
             frequency_penalty=self.frequency_penalty,
             presence_penalty=self.presence_penalty,
             stop=stop,
+            request_timeout=12
         )
         self.tokens += response["usage"]["total_tokens"]
         return response["choices"][0]["message"]["content"]

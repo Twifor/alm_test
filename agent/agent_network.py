@@ -3,7 +3,9 @@ from agent.tools import ToolList, Tool
 from agent.llm import GPT3_5LLM
 from utils.logger import logger
 import numpy as np
+from operator import itemgetter
 import json
+from agent.prompts import *
 import warnings
 
 
@@ -12,20 +14,11 @@ class ReActToolAgent:
         self,
         llm: GPT3_5LLM,
         tool: Tool,
-        state:ReActBaseHistoryState = None,
+        state: ReActBaseHistoryState = None,
     ):
         self.llm = llm
         self.toolList = ToolList()
         self.toolList.registerTool(tool)
-        self.PromptHead = "Solve a task with interleaving Thought, Action, Observation steps. Thought can reason about the current situation.\n"
-        self.PromptHead += 'You must output your answer in the following format:\nFirstly, output your thought and then output "Action:" followed by your action. Finally, output "Observation:" to finish your output.\n'
-        self.PromptHead += 'The action you provide should be the format like "LookUp(Kam Heskin)". Except this, do not output anything else. You need to provide the tool_label like "LookUp" and then provide your parameters in parentheses.\n'
-        self.PromptHead += "You can only use the tools we provide to you. The list of tools you can use will be showed later.\n"
-        self.PromptHead += "You can ONLY invoke ONE tool at each step. You CANNOT invoke two or more tools at one step.\n"
-        self.PromptTail = (
-            "Now based on the following information and the task, take the next step.\n"
-        )
-        self.ExamplePrompt = "There are some examples, which describes the output format (including the corresponding observation) you need to follow:\n"
         self.request = ""
         self.state = state
         if self.state == None:
@@ -38,14 +31,12 @@ class ReActToolAgent:
         return self.toolList.registerTool(tool)
 
     def step(self):
-        prompt = self.PromptHead + "\n"
-        prompt += self.ExamplePrompt + EXAMPLES + "\n\n"
-        prompt += self.toolList.description(use_examples=False) + "\n"
-        prompt += self.PromptTail + f"Task: {self.request}\n"
-        prompt += self.state.description()
+        prompt = AGENT_NETWORK_PROMPT.format(
+            prompt=REACT_INSTRUCTION, examples=REACT_EXAMPLES,
+            tool_description=self.toolList.description(use_examples=False,
+                                                       use_conf=True), task=self.request, history=self.state.description())
         if self.request == "":
             warnings.warn("Request is empty.")
-        prompt += f"Then take your next step.\nThought:"
         llm_response = self.llm.response(prompt, stop=f"\nObservation:")
         try:
             thought, action = llm_response.strip().split(f"Action:")
@@ -60,12 +51,13 @@ class ReActToolAgent:
 
 
 class AgentNetWork:
-    def __init__(self, llm:LLM=None):
+    def __init__(self, llm: LLM = None):
         self.tool_label2tool = {}
         self.tool_label2agent = {}
         self.links = set()
+        self.llm = llm
         self.clear()
-    
+
     def clear(self):
         self.history_state = ReActRawHistoryState()
         self.now = None
@@ -77,7 +69,9 @@ class AgentNetWork:
         self.tool_info = {}
 
     def output_TAO(self, now_tool_label, next_tools, thought, action, observation):
-        next_tools = [(tool.invoke_label, float("%.3f" % tool.conf)) for tool in next_tools]
+        next_tools = [
+            (tool.invoke_label, float("%.3f" % tool.conf)) for tool in next_tools
+        ]
         print(f"At step \033[31m{self.current_steps + 1}\033[0m:")
         print(f"\033[35mToolAgent\033[0m: {now_tool_label}")
         print(f"\033[35mNext Tools\033[0m: {next_tools}")
@@ -103,9 +97,7 @@ class AgentNetWork:
         self.tool_label2tool[tool_label] = tool
         self.tool_label2agent[tool_label] = toolAgent
 
-    def link(self, src_tool, dest_tool):
-        src_tool_label = src_tool.invoke_label
-        dest_tool_label = dest_tool.invoke_label
+    def link_tool_label(self, src_tool_label: str, dest_tool_label: str):
         if src_tool_label not in self.tool_label2agent.keys():
             raise ValueError(f"src_tool_label {src_tool_label} not found.")
         if dest_tool_label not in self.tool_label2agent.keys():
@@ -117,6 +109,9 @@ class AgentNetWork:
         self.links.add((src_tool_label, dest_tool_label))
         src_agent = self.tool_label2agent[src_tool_label]
         src_agent.toolList.registerTool(self.tool_label2tool[dest_tool_label])
+
+    def link(self, src_tool: Tool, dest_tool: Tool):
+        self.link_tool_label(src_tool.invoke_label, dest_tool.invoke_label)
 
     def allLink(self, dest_tool):
         cnt = 0
@@ -139,44 +134,74 @@ class AgentNetWork:
         self.log_history["begin_tool"] = begin_tool.invoke_label
         self.log_history["chains"] = []
         self.tool_chain = []
-    
-    def backward(self, reward):
-        if self.tool_chain == None or self.tool_chain == []:
-            warnings.warn("Nothing to do with backward().")
-            return
-        tool_count = {}
+
+    def __with_llm_reward(self, reward):
+        print("Updating confidence...")
+        tool_set = set()
+        tool_prompt = ""
         for tool in self.tool_chain:
-            if tool.invoke_label not in tool_count.keys():
-                tool_count[tool.invoke_label] = 0
-            else:
-                tool_count[tool.invoke_label] += 1
-        
-        sum_softmax = np.sum(np.exp([x for x in tool_count.values()]))
-        for tool_label in tool_count.keys():
-            tool_count[tool_label] = np.exp(tool_count[tool_label]) / sum_softmax
-        print("Updating tool confidence...")
-        for tool_label in tool_count.keys():
-            tool = self.tool_label2tool[tool_label]
-            delta = reward * (1 + np.arctanh(tool_count[tool_label] - 1e-3))
-            tool.confidence += delta
-            if delta < 0:
-                print(f"\033[31m{tool_label} -= {-delta}\033[0m")
-            else:
-                print(f"\033[32m{tool_label} += {delta}\033[0m")
+            tool_set.add(tool)
+        idx = 1
+        for tool in tool_set:
+            tool_prompt += f"{idx}. {tool.description()}\n"
+            idx += 1
+        prompt = AGENT_NETWORK_REWARD_PROMPT.format(
+            tool_description=tool_prompt, task=self.task, history=self.history_state.description())
+        response = self.llm.response(prompt, stop="END")
+        tool_scores = response.split("Tool: ")
+        tool_score_delta = {}
+        for t_s in tool_scores[1:]:
+            tool_name, s_thought = t_s.split("Score: ")
+            score, thought = s_thought.split("Thought: ")
+            tool_name = tool_name.strip()
+            if tool_name.find("(") != -1:
+                tool_name = tool_name[:tool_name.find("(")]
+            score = int(score.strip())
+            tool_score_delta[tool_name] = score
+        for tool_name in tool_score_delta.keys():
+            delta = tool_score_delta[tool_name] * 0.456
+            if tool_name not in [tool.invoke_label for tool in tool_set]:
+                continue
+            try:
+                self.tool_label2tool[tool_name].perf_confidence += delta
+
+                if delta < 0:
+                    print(f"\033[31m{tool_name} -= {-delta}\033[0m")
+                elif delta > 0:
+                    print(f"\033[32m{tool_name} += {delta}\033[0m")
+            except:
+                print(f"Error. Omit {tool_name}")
+
+    def backward(self, reward):
+        self.__with_llm_reward(reward)
+        # self.__update_conf(reward)
         tool_score_record = {}
+        tool_score_list = []
         for tool in self.tool_label2tool.values():
-            tool_score_record[tool.invoke_label] = tool.confidence
+            tool_score_list.append((tool.invoke_label, tool.perf_confidence))
+        tool_score_list = sorted(
+            tool_score_list, key=lambda x: x[1], reverse=True)
+        for i in tool_score_list:
+            tool_score_record[i[0]] = i[1]
         tool_score_file = open("tool_score_record.json", "w")
-        tool_score_file.write(json.dumps(tool_score_record, indent=4, separators=(",", ":")))
+        tool_score_file.write(
+            json.dumps(tool_score_record, indent=4, separators=(",", ":"))
+        )
         tool_score_file.close()
-    
+
     def recover_tool_score(self, file_name="tool_score_record.json"):
         tool_score_file = open(file_name, "r")
         tool_score_record = json.loads(tool_score_file.read())
         for tool in self.tool_label2tool.values():
-            tool.confidence = tool_score_record[tool.invoke_label]
+            tool.perf_confidence = tool_score_record[tool.invoke_label]
         tool_score_file.close()
 
+    def recover_edges(self, file_name="edges.json"):
+        tool_edges = open(file_name, "r")
+        tool_edges_record = json.loads(tool_edges.read())
+        for edge in tool_edges_record:
+            if edge["src"] != edge["tgt"]:
+                self.link_tool_label(edge["src"], edge["tgt"])
 
     def step(self):
         if self.isFinished:
@@ -190,11 +215,11 @@ class AgentNetWork:
             action,
             obs,
             reward,
-            isDone,
+            isDone
         ) = current_agent.step()  # take next step
         # print(prompt)
         self.history_state.updateState(
-            thought, action, obs, rk=False
+            thought, action, obs
         )  # update history state
         next_tool_label = action.strip()[
             : action.strip().find("(")
@@ -209,7 +234,7 @@ class AgentNetWork:
             list(self.now.toolList.toolListWithConf()),
             thought,
             action,
-            obs,
+            obs
         )
         self.now = next_agent
         if isDone:
@@ -219,13 +244,14 @@ class AgentNetWork:
         self.current_steps += 1
         if reward > -500:
             self.current_tool_label = next_tool_label
-            self.tool_chain.append(self.tool_label2tool[self.current_tool_label])
+            self.tool_chain.append(
+                self.tool_label2tool[self.current_tool_label])
 
     def steps(self, max_steps=12):
         while self.isFinished == False:
             self.step()
             if self.current_steps > max_steps:
-                self.backward(-8.0)
+                self.backward(-1.0)
                 break
 
     def saveLog(self, event_id):
@@ -234,23 +260,3 @@ class AgentNetWork:
 
     def addExternalLog(self, external_log):
         self.log_history["external_log"] = external_log
-
-
-EXAMPLES = """
-1. Thought: I need to search Colorado orogeny, find the area that the eastern sector of the Colorado orogeny extends into, then find the elevation range of the area.
-Action: Search(Colorado orogeny)
-Observation: The Colorado orogeny was an episode of mountain building (an orogeny) in Colorado and surrounding areas.
-2. Thought: It does not mention the eastern sector. So I need to look up eastern sector.
-Action: Lookup(eastern sector)
-Observation: (Result 1 / 1) The eastern sector extends into the High Plains and is called the Central Plains orogeny.
-3. Thought: The eastern sector of Colorado orogeny extends into the High Plains. So I need to search High Plains and find its elevation range.
-Action: Search(High Plains)
-Observation: High Plains refers to one of two distinct land regions:
-4. Thought: I need to instead search High Plains (United States).
-Action: Search(High Plains (United States))
-Observation: The High Plains are a subregion of the Great Plains. From east to west, the High Plains rise in elevation from around 1,800 to 7,000 ft (550 to 2,130 m).[3]
-5. Thought: High Plains rise in elevation from around 1,800 to 7,000 ft, so the answer is 1,800 to 7,000 ft.
-Action: Finish(1,800 to 7,000 ft)
-Observation: Your are correct.
-End of the examples.
-"""

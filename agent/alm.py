@@ -1,27 +1,27 @@
 from agent.state_memory import ReActRawHistoryState
 from agent.tools import ToolList, Tool
 from agent.llm import GPT3_5LLM
+from examples.bmbtools.answer import AnswerTool
 from utils.logger import logger
 import warnings
+from agent.prompts import *
 
 
 class ReActAgent:
-    def __init__(self, llm: GPT3_5LLM,  toolList: ToolList = None, max_steps=7):
+    def __init__(self, llm: GPT3_5LLM,  toolList: ToolList = None):
         self.llm = llm
         self.state_memory = ReActRawHistoryState()
         self.toolList = toolList
         if self.toolList == None:
             self.toolList = ToolList()
-        self.PromptHead = "Solve a question answering task with interleaving Thought, Action, Observation steps. Thought can reason about the current situation.\n"
         self.current_steps = 0
-        self.max_steps = max_steps
-        self._is_correct = False
-        self._isFinished = False
+        self.__is_correct = False
+        self.__isFinished = False
         self.request = ""
 
     def output_TAO(self, thought, action, observation):
         print(f"At step \033[31m{self.current_steps + 1}\033[0m:")
-        print(f"\033[32mThought\033[0m: {thought}")
+        print(f"\033[32mThought\033[0m: {thought.strip()}")
         print(f"\033[33mAction\033[0m: {action}")
         print(f"\033[34mObservation\033[0m: {observation}")
         print("=="*20)
@@ -33,38 +33,48 @@ class ReActAgent:
         return self.toolList.registerTool(tool)
 
     def isFinished(self) -> bool:
-        return self._isFinished
+        return self.__isFinished
 
     def isCorrect(self) -> bool:
-        return self._is_correct
+        return self.__is_correct
 
     def step(self, is_output=True):
         if self.isFinished() or self.isCorrect():
             return self.isCorrect()
-        prompt = self.PromptHead
-        prompt += self.toolList.description()
+        prompt = REACT_PROMPT.format(prompt=REACT_INSTRUCTION,
+                                     tool_description=self.toolList.description(
+                                         use_examples=False),
+                                     task=self.request, history=self.state_memory.description(),
+                                     examples=REACT_EXAMPLES)
         if self.request == "":
             warnings.warn("Request is empty.")
-        prompt += f"Question: {self.request}\n"
-        prompt += self.state_memory.description()
-        prompt += f"Thought {self.current_steps + 1}:"
         llm_response = self.llm.response(
             prompt, stop=f"\nObservation:")
-        thought, action = llm_response.strip().split(
-            f"\nAction {self.current_steps + 1}: ")
+        try:
+            thought, action = llm_response.strip().split(f"Action:")
+        except:
+            warnings.warn("LLM fail recover.")
+            action = self.llm.response(
+                prompt + llm_response + "Action: ", stop=f"\nObservation:"
+            )
+            thought = llm_response
         obs, reward, isDone = self.toolList.invoke(action)
         if is_output:
             self.output_TAO(thought, action, obs)
         self.state_memory.updateState(thought, action, obs)
         self.current_steps += 1
-        if self.current_steps > self.max_steps:
-            self._is_correct = False
-            self._isFinished = True
-            return 0
         if isDone:
-            self._is_correct = reward == 1
-            self._isFinished = True
+            self.__is_correct = reward == 1
+            self.__isFinished = True
         return reward
+
+    def steps(self, max_steps):
+        while self.__isFinished == False:
+            self.step()
+            if self.current_steps > max_steps:
+                self.__is_correct = False
+                self.__isFinished = True
+                break
 
     def saveLog(self, event_id, external_info={}):
         if not self.isFinished():
@@ -75,13 +85,12 @@ class ReActAgent:
         obj["chains"] = self.state_memory.steps
         for k, v in self.toolList.toolInfo().items():
             obj[k] = v
-        for k, v in external_info.items():
-            obj[k] = v
+        obj["external_log"] = external_info
         logger(event_id, obj)
 
 
 class ReActReflexionAgent(ReActAgent):
-    def __init__(self, llm: GPT3_5LLM, reflexion_llm: GPT3_5LLM, toolList: ToolList = None, max_trials=7,  max_steps=7):
+    def __init__(self, llm: GPT3_5LLM, reflexion_llm: GPT3_5LLM, toolList: ToolList = None, max_trials=8,  max_steps=8):
         super().__init__(llm, toolList, max_steps)
         self.reflexion_llm = reflexion_llm
         self.max_trials = max_trials
@@ -97,7 +106,7 @@ class ReActReflexionAgent(ReActAgent):
     def __generateReflectPrompt(self):
         if self.reflecionExample == "":
             warnings.warn("Reflecion Example is empty.")
-        reflect_prompt_head = "You are an advanced reasoning agent that can improve based on self refection. You will be given a previous reasoning trial in which you were given access to an Docstore API environment and a question to answer. You were unsuccessful in answering the question either because you guessed the wrong answer with Finish[<answer>], or you used up your set number of reasoning steps. In a few sentences, Diagnose a possible reason for failure and devise a new, concise, high level plan that aims to mitigate the same failure. Use complete sentences.\nHere are some examples:\n"
+        reflect_prompt_head = REFLECT_INSTRUCTION
         reflection_prompt = reflect_prompt_head + self.reflecionExample
         reflection_prompt += "Previous trial:\n"
         reflection_prompt += f"Question: {self.request}\n"
@@ -132,7 +141,7 @@ class ReActReflexionAgent(ReActAgent):
             return self.isCorrect()
         if self.isPaused():
             if self.current_trials > self.max_trials:
-                self._isFinished = True
+                self.__isFinished = True
                 return 0
             self.trial_history.append(
                 {"reflections": self.reflections.copy(), "chains": self.state_memory.steps.copy()})
@@ -161,14 +170,14 @@ class ReActReflexionAgent(ReActAgent):
         self.state_memory.updateState(thought, action, obs)
         self.current_steps += 1
         if self.current_steps > self.max_steps:
-            self._is_correct = False
+            self.__is_correct = False
             self._isPaused = True
             return 0
         if isDone:
-            self._is_correct = reward == 1
+            self.__is_correct = reward == 1
             self._isPaused = True
             if self.isCorrect():
-                self._isFinished = True
+                self.__isFinished = True
         return reward
 
     def saveLog(self, event_id, external_info={}):
@@ -184,4 +193,75 @@ class ReActReflexionAgent(ReActAgent):
             obj[k] = v
         for k, v in external_info.items():
             obj[k] = v
+        logger(event_id, obj)
+
+
+class CoTAgent:
+    def __init__(self, llm: GPT3_5LLM, answer_tool):
+        self.llm = llm
+        self.toolList = ToolList()
+        self.toolList.registerTool(answer_tool)
+        self.request = ""
+        self.state_memory = ReActRawHistoryState()
+        self.__isFinished = False
+        self.__is_correct = False
+
+    def output_TAO(self, thought, action, observation):
+        print(f"\033[32mThought\033[0m: {thought.strip()}")
+        print(f"\033[33mAction\033[0m: {action}")
+        print(f"\033[34mObservation\033[0m: {observation}")
+        print("=="*20)
+
+    def setRequest(self, request):
+        self.request = request
+
+    def setContext(self, context):
+        self.context = context
+
+    def isFinished(self) -> bool:
+        return self.__isFinished
+
+    def isCorrect(self) -> bool:
+        return self.__is_correct
+
+    def step(self, is_output=True):
+        if self.isFinished() or self.isCorrect():
+            return self.isCorrect()
+        prompt = COT_PROMPT.format(
+            examples=COT_EXAMPLES, context=self.context, task=self.request)
+        if self.request == "":
+            warnings.warn("Request is empty.")
+        llm_response = self.llm.response(
+            prompt, stop=f"\nObservation:")
+        try:
+            thought, action = llm_response.strip().split(f"Action:")
+        except:
+            warnings.warn("LLM fail recover.")
+            action = self.llm.response(
+                prompt + llm_response + "Action: ", stop=f"\nObservation:"
+            )
+            thought = llm_response
+        obs, reward, isDone = self.toolList.invoke(action)
+        self.state_memory.updateState(thought, action, obs)
+        if is_output:
+            self.output_TAO(thought, action, obs)
+        if isDone:
+            self.__is_correct = reward == 1
+            self.__isFinished = True
+        return reward
+
+    def steps(self):
+        while not self.isFinished():
+            self.step()
+
+    def saveLog(self, event_id, external_info={}):
+        if not self.isFinished():
+            raise ValueError(
+                "You can save log only if this agent has finished.")
+        obj = {}
+        obj["question"] = self.request
+        obj["chains"] = self.state_memory.steps
+        for k, v in self.toolList.toolInfo().items():
+            obj[k] = v
+        obj["external_log"] = external_info
         logger(event_id, obj)

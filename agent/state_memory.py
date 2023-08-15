@@ -4,12 +4,13 @@ from memory.embeddings import OpenAIEmbeddings
 from abc import ABC, abstractmethod
 from agent.llm import LLM
 
+
 class ReActBaseHistoryState(ABC):
-     
+
     @abstractmethod
     def updateState(self, thought, action, observation, rk=True):
         pass
-     
+
     @abstractmethod
     def num(self):
         pass
@@ -22,30 +23,21 @@ class ReActBaseHistoryState(ABC):
     def reset(self):
         pass
 
+
 class ReActRawHistoryState(ReActBaseHistoryState):
     def __init__(self):
         super().__init__()
         self.steps = []
         self.request = ""
 
-    def updateState(self, thought, action, observation, rk=True):
-        id = len(self.steps) + 1
-        if rk:
-            self.steps.append(
-                {
-                    "Thought %d: " % id: thought.strip(),
-                    "Action %d: " % id: action,
-                    "Observation %d: " % id: observation,
-                }
-            )
-        else:
-            self.steps.append(
-                {
-                    "Thought: ": thought.strip(),
-                    "Action: ": action,
-                    "Observation: ": observation,
-                }
-            )
+    def updateState(self, thought, action, observation):
+        self.steps.append(
+            {
+                "Thought": thought.strip(),
+                "Action":  action,
+                "Observation": observation,
+            }
+        )
 
     def num(self):
         return len(self.steps)
@@ -54,7 +46,7 @@ class ReActRawHistoryState(ReActBaseHistoryState):
         res = ""
         for step in self.steps:
             for k, v in step.items():
-                res += k + str(v) + "\n"
+                res += k + ": " + str(v) + "\n"
         return res
 
     def reset(self):
@@ -62,6 +54,7 @@ class ReActRawHistoryState(ReActBaseHistoryState):
 
 
 class ReActSummaryState(ReActRawHistoryState):
+    # Under construction
     def __init__(self, llm: LLM):
         super().__init__()
         self.llm = llm
@@ -76,7 +69,7 @@ class ReActSummaryState(ReActRawHistoryState):
                 self.history += k + str(v) + "\n"
         prompt = "You are a smart assistant who helps to generate a summary of the given context.\n"
         prompt += "Now I will provide the history of conversation between another assistant and some tools or users. You need to summarize them to a brief passage.\n"
-        prompt += "You summary has an significant impact on another assistant. You need to guarantee that your summary does not lack any important information.\n"        
+        prompt += "You summary has an significant impact on another assistant. You need to guarantee that your summary does not lack any important information.\n"
         prompt += "The history will be showed here:\n"
         prompt += self.history
         prompt += "Summary:"

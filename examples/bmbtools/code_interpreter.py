@@ -13,7 +13,7 @@ class CodeInterpreter:
             # Wrap the code in an eval() call to return the result
             wrapped_code = f"__result__ = eval({repr(code)}, globals(), locals())"
             exec(wrapped_code, self.globals, self.locals)
-            return self.locals.get('__result__', None)
+            return self.locals.get("__result__", None)
         except Exception as e:
             try:
                 # If eval fails, attempt to exec the code without returning a result
@@ -35,8 +35,11 @@ class ExecuteCodeTool(Tool):
 
     def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         code = invoke_data.strip().strip("```")
+        if code.startswith("\"") or code.startswith("\'"):
+            code = code[1:-1]
         code = code.replace("\\n", "\n")
+        code = code.replace('\\"', '"')
         return self.interpreter.execute_code(code), 0, False, {}
 
     def description(self) -> str:
-        return "ExecuteCode(code), execute Python expressions with Python Interpreter, can be used as a simple calculator e.g.,\"(123 + 234) / 23 * 19.\""
+        return 'ExecuteCode(code), execute Python expressions with Python Interpreter, can be used as a simple calculator e.g.,"(123 + 234) / 23 * 19.".'

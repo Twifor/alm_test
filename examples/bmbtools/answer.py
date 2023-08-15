@@ -14,7 +14,7 @@ class AnswerTool(Tool):
         is_correct = self.func(res)
         return (
             "You are CORRECT." if is_correct else "You are INCORRECT.",
-            8 if is_correct else -8,
+            1 if is_correct else -1,
             True,
             {"gt_answer": self.gt} if self.gt is not None else {},
         )

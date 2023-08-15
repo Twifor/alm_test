@@ -24,6 +24,7 @@ from examples.bmbtools.google_search import GoogleSearchTool, GoogleSearch2Tool
 from examples.bmbtools.code_interpreter import ExecuteCodeTool
 from examples.bmbtools.gradio import ImageCaptionTool, ImageToPromptTool, OCRTool
 from examples.scienceQA.read_lecture import ReadLectureTool
+from examples.scienceQA.rubbish_tools import *
 from agent.agent_network import ReActToolAgent, AgentNetWork
 from agent.llm import GPT3_5LLM, Davinci003LLM
 from utils.loadenv import Env
@@ -32,11 +33,30 @@ import json
 
 env = Env()
 llm = GPT3_5LLM(env.openai_key())
-tools = [BeginTool(), AnswerTool(lambda x: True), WikiPediaSearchTool(), WikiLookUpTool(), WikiPediaDisambiguationTool(), GoogleSearch2Tool(), OCRTool(), ImageCaptionTool(), GoogleSearchTool(env.searper_key()), ExecuteCodeTool(), RunPythonTool(), ReadLectureTool("")]
+llm_judge = GPT3_5LLM(env.openai_key())
+tools = [
+    BeginTool(),
+    AnswerTool(lambda x: True),
+    WikiPediaSearchTool(),
+    WikiLookUpTool(),
+    WikiPediaDisambiguationTool(),
+    GoogleSearch2Tool(),
+    OCRTool(),
+    # ImageCaptionTool(),
+    GoogleSearchTool(env.searper_key()),
+    ExecuteCodeTool(),
+    RunPythonTool(),
+    R_OCRTool(),
+    R_SearchTool(),
+    R_UnknownTool(),
+    R_LoopUpTool(),
+    ReadLectureTool(""),
+]
 agents = [ReActToolAgent(llm, tool) for tool in tools]
-network = AgentNetWork()
+network = AgentNetWork(llm_judge)
 for agent in agents:
     network.addToolAgent(agent)
+# network.recover_edges()
 for i in range(2, len(tools)):
     network.link(tools[0], tools[i])
 network.allLink(tools[1])
@@ -46,10 +66,12 @@ for i in range(2, len(tools)):
             network.link(tools[i], tools[j])
 # network.recover_tool_score()
 
-for i in range(21, 100):
+for i in range(0, 100):
     file = open(f"dataset/scienceQA/train/{i}.json", "r")
     obj = json.loads(file.read())
-    query = obj["question"] + " You must choose one answer from the following choices:\n"
+    query = (
+        obj["question"] + " You must choose one answer from the following choices:\n"
+    )
     query += "Choices: " + str(obj["choices"]) + "\n"
     if "image" in obj.keys():
         query += "This question has a related image, you can use some tools to read from this image to help you to solve this problem.\n"
@@ -57,11 +79,12 @@ for i in range(21, 100):
     ans = obj["choices"][obj["answer"]]
     lecture = obj["lecture"]
 
-    tools[1].func = lambda x: EM(x,ans)
+    tools[1].func = lambda x: EM(x, ans)
     tools[-1].knowledge = lecture
 
     network.init(tools[0], query)
-    network.steps(max_steps=12)
+    llm.tokens = 0
+    network.steps(max_steps=8)
     network.addExternalLog({"ground_truth": ans, "token_use": llm.tokens})
     network.saveLog(f"sciQA_{i}")
 
