@@ -76,8 +76,8 @@ The hisory of the whole process is:
 According to the performance of these tools, provide your scores of each tool.
 1. If the final answer of agent is corret, you should determine which tool is helphul and provide higher score.
 2. If the final answer of agent is incorrect or not given, you should determine which tool is noisy and provide lower score.
-3. You must provide the score of tool based on the its usefulness on the given history.
-4. If the error is caused by agent itself instead of the tool, you can not provide lower score just because of this error.
+3. [MOST IMPORTANT]. Some tools may provide errors. You should discover them and provide lower scores to these tools.
+
 To provide your scores, you need to output as the following format:
 First, output \"Tool:\" followed by the tool name.
 Next line, output \"Score:\" followed by your score, which is an integer between -3 and 3, higher score means higher performance.
@@ -85,6 +85,13 @@ Then, in the next line, output \"Tought:\" followed by your reason why you give 
 Then provide the score of the next tool in the next following lines.
 Output END to finish your answer."""
 )
+
+# 
+# 4. If the error is caused by agent itself instead of the tool, you can not provide lower score just because of this error.
+# 3. You must provide the score of tool based on the its usefulness on the given history.
+# 4. Some tools may provide errors. You should discover them and provide lower scores to these tools.
+
+
 
 COT_EXAMPLES = """Relevant Context: The Nile River is the longest river in the world, spanning approximately 6,650 kilometers (4,132 miles) in length. It flows through eleven countries in northeastern Africa, including Egypt, Sudan, and Uganda.
 Question: What is the longest river in the world?

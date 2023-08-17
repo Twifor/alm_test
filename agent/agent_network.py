@@ -154,13 +154,17 @@ class AgentNetWork:
         tool_scores = response.split("Tool: ")
         tool_score_delta = {}
         for t_s in tool_scores[1:]:
-            tool_name, s_thought = t_s.split("Score: ")
-            score, thought = s_thought.split("Thought: ")
-            tool_name = tool_name.strip()
-            if tool_name.find("(") != -1:
-                tool_name = tool_name[:tool_name.find("(")]
-            score = int(score.strip())
-            tool_score_delta[tool_name] = score
+            try:
+                tool_name, s_thought = t_s.split("Score: ")
+                score, thought = s_thought.split("Thought: ")
+                print(thought)
+                tool_name = tool_name.strip()
+                if tool_name.find("(") != -1:
+                    tool_name = tool_name[:tool_name.find("(")]
+                score = int(score.strip())
+                tool_score_delta[tool_name] = score
+            except:
+                continue
         for tool_name in tool_score_delta.keys():
             delta = tool_score_delta[tool_name] * 0.456
             if tool_name not in [tool.invoke_label for tool in tool_set]:
