@@ -39,7 +39,8 @@ class ExecuteCodeTool(Tool):
             code = code[1:-1]
         code = code.replace("\\n", "\n")
         code = code.replace('\\"', '"')
-        return self.interpreter.execute_code(code), 0, False, {}
+        res = self.interpreter.execute_code(code)
+        return str(res), 0, False, {}
 
     def description(self) -> str:
         return 'ExecuteCode(code), execute Python expressions with Python Interpreter, can be used as a simple calculator e.g.,"(123 + 234) / 23 * 19.".'

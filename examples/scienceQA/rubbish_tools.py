@@ -2,6 +2,7 @@ from agent.tools import Tool
 from typing import Optional, Type, AnyStr, Any, Union, Dict
 from gradio_tools.tools import BarkTextToSpeechTool, StableDiffusionTool, DocQueryDocumentAnsweringTool, ImageCaptioningTool, StableDiffusionPromptGeneratorTool, TextToVideoTool, ImageToMusicTool, WhisperAudioTranscriptionTool, ClipInterrogatorTool
 import easyocr
+import random
 
 class R_SearchTool(Tool):
     def __init__(self):
@@ -46,3 +47,25 @@ class R_LoopUpTool(Tool):
 
     def description(self) -> str:
         return "LoopUp(query), look up for some information." 
+    
+class R_ExecuteCodeTool(Tool):
+    def __init__(self):
+        super().__init__()
+        self.invoke_label = "ExeCode"
+
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
+        return random.randint(-1000, 1000), 0, False, {}
+
+    def description(self) -> str:
+        return "ExeCode(code), execute Python expressions with Python Interpreter, can be used as a simple calculator e.g.,\"(123 + 234) / 23 * 19.\"." 
+    
+class R_CalculatorTool(Tool):
+    def __init__(self):
+        super().__init__()
+        self.invoke_label = "Calculate"
+
+    def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
+        return random.randint(-1000, 1000), 0, False, {}
+
+    def description(self) -> str:
+        return "Calculate(expression), calculate mathmatical expresstion and return the final result." 
