@@ -43,7 +43,7 @@ Thought:
 
 AGENT_NETWORK_PROMPT = PromptTemplate(
     input_variables=["prompt", "examples",
-                     "tool_description", "task", "history"],
+                     "tool_description", "task", "history", "external_prompt"],
     template="""{prompt}
 {tool_description}
 There are some examples, which describes the output format (including the corresponding observation) you need to follow:
@@ -56,6 +56,7 @@ Task: {task}
 {history}
 
 Then take your next step.
+{external_prompt}
 Thought:
 """
 )

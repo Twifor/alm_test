@@ -30,11 +30,14 @@ class ReActToolAgent:
     def registerTool(self, tool: Tool) -> bool:
         return self.toolList.registerTool(tool)
 
-    def step(self):
+    def step(self, is_last_trial):
+        external_prompt = ""
+        if is_last_trial:
+            external_prompt = "This is your last trial. You must use Answer tool to submit your final answer at this step."
         prompt = AGENT_NETWORK_PROMPT.format(
             prompt=REACT_INSTRUCTION, examples=REACT_EXAMPLES,
             tool_description=self.toolList.description(use_examples=False,
-                                                       use_conf=True), task=self.request, history=self.state.description())
+                                                       use_conf=True), task=self.request, history=self.state.description(), external_prompt=external_prompt)
         if self.request == "":
             warnings.warn("Request is empty.")
         llm_response = self.llm.response(prompt, stop=f"\nObservation:")
@@ -203,7 +206,7 @@ class AgentNetWork:
             if edge["src"] != edge["tgt"]:
                 self.link_tool_label(edge["src"], edge["tgt"])
 
-    def step(self):
+    def step(self, is_last_trial=False):
         if self.isFinished:
             return
         current_agent = self.now
@@ -216,7 +219,7 @@ class AgentNetWork:
             obs,
             reward,
             isDone
-        ) = current_agent.step()  # take next step
+        ) = current_agent.step(is_last_trial)  # take next step
         # print(prompt)
         self.history_state.updateState(
             thought, action, obs
@@ -249,7 +252,7 @@ class AgentNetWork:
 
     def steps(self, max_steps=12):
         while self.isFinished == False:
-            self.step()
+            self.step(self.current_steps == max_steps)
             if self.current_steps > max_steps:
                 self.backward(-1.0)
                 break
