@@ -68,7 +68,8 @@ class ToolList:
             res = "There is one action or tool you can use:\n"
         else:
             res = f"There are {len(tools)} actions or tools you can use.\n"
-            res += "For each tool, a score of confidence in [0, 1] will be provided. The tool with higher confidence may have better performance and it is recommended to invoke it.\n"
+            if use_conf:
+                res += "For each tool, a score of confidence in [0, 1] will be provided. The tool with higher confidence may have better performance and it is recommended to invoke it.\n"
         cnt = 1
         for tool in tools:
             if use_conf:

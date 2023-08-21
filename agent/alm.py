@@ -83,33 +83,42 @@ class ReActAgent:
         obj = {}
         obj["question"] = self.request
         obj["chains"] = self.state_memory.steps
-        for k, v in self.toolList.toolInfo().items():
-            obj[k] = v
         obj["external_log"] = external_info
         logger(event_id, obj)
 
 
-class ReActReflexionAgent(ReActAgent):
-    def __init__(self, llm: GPT3_5LLM, reflexion_llm: GPT3_5LLM, toolList: ToolList = None, max_trials=8,  max_steps=8):
-        super().__init__(llm, toolList, max_steps)
+class ReActReflexionAgent:
+    def __init__(self, llm: GPT3_5LLM, reflexion_llm: GPT3_5LLM, toolList: ToolList = None):
         self.reflexion_llm = reflexion_llm
-        self.max_trials = max_trials
+        self.llm = llm
+
         self.current_trials = 0
-        self._isPaused = False
-        self.reflecionExample = ""
+        self.current_steps = 0
+
+        self.__isPaused = False
+        self.__isCorrect = False
+        self.__isFinished = False
+
+        self.reflecionExample = REFLEXION_EXAMPLE
         self.reflections = []
         self.trial_history = []
+        self.state_memory = ReActRawHistoryState()
+        self.toolList = toolList
+        if self.toolList == None:
+            self.toolList = ToolList()
+
+        self.request = ""
 
     def isPaused(self):
-        return self._isPaused
+        return self.__isPaused
 
     def __generateReflectPrompt(self):
         if self.reflecionExample == "":
             warnings.warn("Reflecion Example is empty.")
         reflect_prompt_head = REFLECT_INSTRUCTION
-        reflection_prompt = reflect_prompt_head + self.reflecionExample
-        reflection_prompt += "Previous trial:\n"
-        reflection_prompt += f"Question: {self.request}\n"
+        reflection_prompt = reflect_prompt_head + "\n" + self.reflecionExample
+        reflection_prompt += "\n<END of EXAMPLES>\nPrevious trial:\n\n"
+        reflection_prompt += f"Task: {self.request}\n"
         reflection_prompt += self.state_memory.description() + "\nReflection:\n"
         return reflection_prompt
 
@@ -136,11 +145,11 @@ class ReActReflexionAgent(ReActAgent):
         for f in self.reflections:
             print(f"- \033[33m{f}\033[0m\n")
 
-    def step(self, is_output=True):
+    def step(self, is_output=True, max_trials=3, max_steps=8):
         if self.isFinished():
             return self.isCorrect()
         if self.isPaused():
-            if self.current_trials > self.max_trials:
+            if self.current_trials > max_trials:
                 self.__isFinished = True
                 return 0
             self.trial_history.append(
@@ -148,37 +157,52 @@ class ReActReflexionAgent(ReActAgent):
             self.__reflecion()
             if is_output:
                 self.__output_reflecion()
-            self._isPaused = False
+            self.__isPaused = False
             self.state_memory.reset()
             self.current_trials += 1
             self.current_steps = 0
-        prompt = self.PromptHead
-        prompt += self.toolList.description()
-        if self.request == "":
-            warnings.warn("Request is empty.")
-        prompt += f"Question: {self.request}\n"
-        prompt += self.__reflection_description()
-        prompt += self.state_memory.description()
-        prompt += f"Thought {self.current_steps + 1}:"
+        prompt = REFLEXION_PROMPT.format(prompt=REACT_INSTRUCTION,
+                                         tool_description=self.toolList.description(
+                                             use_examples=False),
+                                         task=self.request, history=self.state_memory.description(),
+                                         examples=REACT_EXAMPLES,
+                                         reflexion_prompt=self.__reflection_description())
         llm_response = self.llm.response(
-            prompt, stop=f"\nObservation {self.current_steps + 1}:")
-        thought, action = llm_response.strip().split(
-            f"\nAction {self.current_steps + 1}: ")
+            prompt, stop=f"\nObservation:")
+        try:
+            thought, action = llm_response.strip().split(f"Action:")
+        except:
+            warnings.warn("LLM fail recover.")
+            action = self.llm.response(
+                prompt + llm_response + "Action: ", stop=f"\nObservation:"
+            )
+            thought = llm_response
         obs, reward, isDone = self.toolList.invoke(action)
         if is_output:
             self.output_TAO(thought, action, obs)
         self.state_memory.updateState(thought, action, obs)
         self.current_steps += 1
-        if self.current_steps > self.max_steps:
-            self.__is_correct = False
-            self._isPaused = True
-            return 0
         if isDone:
-            self.__is_correct = reward == 1
-            self._isPaused = True
+            self.__isCorrect = reward == 1
+            self.__isPaused = True
             if self.isCorrect():
                 self.__isFinished = True
+        if self.current_steps > max_steps:
+            self.__isCorrect = False
+            self.__isPaused = True
+            return 0
         return reward
+
+    def steps(self, max_trials, max_steps):
+        while self.isFinished() == False:
+            self.step(max_trials=max_trials, max_steps=max_steps)
+
+    def output_TAO(self, thought, action, observation):
+        print(f"At step \033[31m{self.current_steps + 1}\033[0m:")
+        print(f"\033[32mThought\033[0m: {thought.strip()}")
+        print(f"\033[33mAction\033[0m: {action}")
+        print(f"\033[34mObservation\033[0m: {observation}")
+        print("=="*20)
 
     def saveLog(self, event_id, external_info={}):
         if not self.isFinished():
@@ -189,11 +213,21 @@ class ReActReflexionAgent(ReActAgent):
         obj["trial_history"] = self.trial_history
         obj["last_trial"] = {"reflections": self.reflections,
                              "chains": self.state_memory.steps}
-        for k, v in self.toolList.toolInfo().items():
-            obj[k] = v
         for k, v in external_info.items():
             obj[k] = v
         logger(event_id, obj)
+
+    def isFinished(self) -> bool:
+        return self.__isFinished
+
+    def isCorrect(self) -> bool:
+        return self.__isCorrect
+
+    def setRequest(self, request):
+        self.request = request
+
+    def registerTool(self, tool: Tool) -> bool:
+        return self.toolList.registerTool(tool)
 
 
 class CoTAgent:
@@ -229,19 +263,22 @@ class CoTAgent:
             return self.isCorrect()
         prompt = COT_PROMPT.format(
             examples=COT_EXAMPLES, context=self.context, task=self.request)
+
         if self.request == "":
             warnings.warn("Request is empty.")
         llm_response = self.llm.response(
-            prompt, stop=f"\nObservation:")
+            prompt, stop=f"\n:")
         try:
             thought, action = llm_response.strip().split(f"Action:")
         except:
             warnings.warn("LLM fail recover.")
+            # print(prompt + llm_response + "Action: ")
             action = self.llm.response(
-                prompt + llm_response + "Action: ", stop=f"\nObservation:"
+                prompt + llm_response + "\nAction: ", stop=f"\n:"
             )
             thought = llm_response
         obs, reward, isDone = self.toolList.invoke(action)
+        isDone = True
         self.state_memory.updateState(thought, action, obs)
         if is_output:
             self.output_TAO(thought, action, obs)
