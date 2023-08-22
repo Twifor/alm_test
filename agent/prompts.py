@@ -153,3 +153,64 @@ Question: {task}
 Thought:
 """
 )
+
+
+ToT_INSTRUCTION = """Solve a task with interleaving Thought, Action, Observation steps. Thought can reason about the current situation. There are some rules your should follow:
+1. You must output your answer in the following format:
+    Firstly, output your thought.
+    Secondly, output "Action:" followed by your action. 
+    Finally, output "Observation:" to finish your output.
+2. For one action, the action you provide should be the format like "tool_label(tool_arg1, tool_arg2)". Except this, do not output anything else. You need to provide the specified tool_label and then provide your parameters in parentheses.
+3. You can only use the tools we provide to you. The list of tools you can use will be showed later.
+4. You must invoke 3 tools at the same time. You should use ; to seperate them. For better performance, you should choose some tools which are the most necessary.
+"""
+
+ToT_EXAMPLES = """1.
+Thought: I need to search Colorado orogeny, find the area that the eastern sector of the Colorado orogeny extends into, then find the elevation range of the area.
+Action: Search(Colorado orogeny);LookUp(Colorado);GoogleSearch(Colorado)
+2. 
+Thought: It does not mention the eastern sector. So I need to look up eastern sector.
+Action: Lookup(eastern sector);Search(eastern sector);GoogleSearch(eastern sector)
+3.
+Thought: The eastern sector of Colorado orogeny extends into the High Plains. So I need to search High Plains and find its elevation range.
+Action: Search(High Plains);LookUp(High Plains);GoogleSearch(High Plains)
+End of the examples."""
+
+ToT_PROMPT = PromptTemplate(
+    input_variables=["prompt", "tool_description",
+                     "task", "history", "examples", "external_prompt"],
+    template="""{prompt}
+
+{tool_description}
+There are some examples, which describes the output format (including the corresponding observation) you need to follow:
+{examples}
+
+Task: {task}
+{history}
+
+Then take your next step. Invoke 3 tools after "Action:".
+{external_prompt}
+Thought:
+"""
+)
+
+ToT_VOTE_PROMPT = PromptTemplate(
+    input_variables=['task', 'history', 'cur_tools'],
+    template="""You are a fair judger who can select the best tools which are most helpful. Another agent is solving a task by using multiple tools. You should choose one tool which is the best one.
+
+The task is:
+{task}
+
+History of reasoning:
+{history}
+
+At this step, another agent invokes multiple tools. The tools (including parameters and ids) and related observation are:
+{cur_tools}
+
+Now you should choose the best tool from these tools and provide your reasons. If none of them is helpful, you should also provide one tool which is the best.
+You cannot provide new tools. You must choose one from the tools we provide to you.
+
+To submit your answer, you should first provide your reasons of your choice. 
+Then output "Tool: 0" or "Tool: 1" or "Tool: 2" (depending on your choice) to finish you answer.
+"""
+)

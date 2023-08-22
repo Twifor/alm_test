@@ -26,7 +26,7 @@ from examples.bmbtools.code_interpreter import ExecuteCodeTool
 from examples.bmbtools.gradio import ImageCaptionTool, ImageToPromptTool, OCRTool
 from examples.scienceQA.read_lecture import ReadLectureTool
 from examples.scienceQA.rubbish_tools import *
-from agent.alm import ReActAgent
+from agent.alm import ReActAgent, ToTAgent
 from agent.llm import GPT3_5LLM, Davinci003LLM
 from utils.loadenv import Env
 import openai
@@ -56,10 +56,10 @@ tool_list = ToolList()
 for tool in tools:
     tool_list.registerTool(tool)
 
-i = 749
+i = 1
 while i < 1000:
     try:
-        react_agent = ReActAgent(llm, tool_list)
+        react_agent = ToTAgent(llm, tool_list)
         file = open(f"dataset/scienceQA/test/{i}.json", "r")
         obj = json.loads(file.read())
         query = (
@@ -79,9 +79,9 @@ while i < 1000:
         llm.tokens = 0
         react_agent.steps(max_steps=8)
         import os
-        os.system(f"del ./logs/react_sciQA_{i}.log")
+        os.system(f"del ./logs/tot_sciQA_{i}.log")
         react_agent.saveLog(
-            f"react_sciQA_{i}", {"ground_truth": ans, "token_use": llm.tokens})
+            f"tot_sciQA_{i}", {"ground_truth": ans, "token_use": llm.tokens})
         i += 1
     except:
         continue
