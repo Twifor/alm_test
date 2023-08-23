@@ -34,26 +34,17 @@ import json
 
 env = Env()
 llm = GPT3_5LLM(env.openai_key())
-file = open("dataset/tableMWP/problems_test1k.json", "r")
-obj: dict = json.loads(file.read())
-data = []
-for i in obj.values():
-    data.append(i)
+
 for i in range(0, 1000):
-    d = data[i]
-    query = d["question"] + "\n"
-    query += "You need to read from this table to generate your answer:\n"
-    query += d["table"] + "\n"
-    query += "If the final answer is a number, you should submit a number as your final answer. For example, you need to submit \"3\" instead of \"3 minutes\".\n"
-    query += "Do not submit expression as your final answer. You need to calculate the final result.\n"
-    ground_truth = ""
-    if d["ans_type"].endswith("number"):
-        def f(x): return abs(
-            float(x)-eval(d["answer"].replace(',', ''))) < 0.001
-        ground_truth = eval(d["answer"].replace(',', ''))
-    else:
-        def f(x): return EM(x, d["answer"])
-        ground_truth = d["answer"]
+    f = open(f"./dataset/math/{i}.json", "r")
+    d = json.loads(f.read())
+    query = d["problem"] + "\n"
+    query += "Use Answer tool to submit your final answer. The answer should be an integer instead of an expression.\n"
+
+    def f(x):
+        return EM(x, d["answer"])
+
+    ground_truth = d["answer"]
     cot_agent = CoTAgent(llm, AnswerTool(f))
     cot_agent.setRequest(query)
     cot_agent.setContext("")
@@ -61,7 +52,8 @@ for i in range(0, 1000):
     # print(ground_truth)
     cot_agent.steps()
     cot_agent.saveLog(
-        f"cot_tableMWP_{i}", {"ground_truth": ground_truth, "token_use": llm.tokens})
+        f"cot_math_{i}", {"ground_truth": ground_truth, "token_use": llm.tokens}
+    )
 # for i in range(1, 1000):
 #     file = open(f"dataset/scienceQA/test/{i}.json", "r")
 #     obj = json.loads(file.read())

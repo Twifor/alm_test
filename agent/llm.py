@@ -3,6 +3,7 @@ from openai.error import RateLimitError, ServiceUnavailableError
 import time
 import warnings
 from retry import retry
+import tiktoken
 
 
 class LLM:
@@ -49,6 +50,13 @@ class Davinci003LLM(LLM):
         return response["choices"][0]["text"]
 
 
+def num_tokens_from_string(string: str, encoding_name: str) -> int:
+    """Returns the number of tokens in a text string."""
+    encoding = encoding = tiktoken.encoding_for_model(encoding_name)
+    num_tokens = len(encoding.encode(string))
+    return num_tokens
+
+
 class GPT3_5LLM(LLM):
     def __init__(
         self,
@@ -75,7 +83,7 @@ class GPT3_5LLM(LLM):
         user,
         system="You are ChatGPT, a large language model trained by OpenAI.\n"
         + "Knowledge cutoff: 2021-09\n"
-        + "Current date: 2023-6-27",
+        + "Current date: 2023-8-23",
         stop="\n",
     ):
         response = openai.ChatCompletion.create(
@@ -90,7 +98,20 @@ class GPT3_5LLM(LLM):
             frequency_penalty=self.frequency_penalty,
             presence_penalty=self.presence_penalty,
             stop=stop,
-            request_timeout=12
+            request_timeout=8,
+            stream=True,
         )
-        self.tokens += response["usage"]["total_tokens"]
-        return response["choices"][0]["message"]["content"]
+        # self.tokens += response["usage"]["total_tokens"]
+        # return response["choices"][0]["message"]["content"]
+        res = ""
+        for chunck in response:
+            try:
+                res += chunck["choices"][0]["delta"]["content"]
+                if chunck["choices"][0]["finish_reason"] != None:
+                    break
+                self.tokens += 1
+            except:
+                break
+        self.tokens += num_tokens_from_string(system + user, "gpt-3.5-turbo")
+
+        return res

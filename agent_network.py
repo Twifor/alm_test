@@ -50,43 +50,61 @@ tools = [
     R_SearchTool(),
     R_UnknownTool(),
     R_LoopUpTool(),
-    ReadLectureTool(""),
+    # ReadLectureTool(""),
+    R_CalculatorTool(),
+    R_ExecuteCodeTool(),
 ]
 agents = [ReActToolAgent(llm, tool) for tool in tools]
 network = AgentNetWork(llm_judge)
 for agent in agents:
     network.addToolAgent(agent)
 # network.recover_edges()
-for i in range(2, len(tools)):
+for i in range(1, len(tools)):
     network.link(tools[0], tools[i])
-network.allLink(tools[1])
-for i in range(2, len(tools)):
-    for j in range(2, len(tools)):
+# network.allLink(tools[1])
+for i in range(1, len(tools)):
+    for j in range(1, len(tools)):
         if i != j:
             network.link(tools[i], tools[j])
 # network.recover_tool_score()
 
-for i in range(0, 100):
-    file = open(f"dataset/scienceQA/train/{i}.json", "r")
-    obj = json.loads(file.read())
-    query = (
-        obj["question"] + " You must choose one answer from the following choices:\n"
-    )
-    query += "Choices: " + str(obj["choices"]) + "\n"
-    if "image" in obj.keys():
-        query += "This question has a related image, you can use some tools to read from this image to help you to solve this problem.\n"
-        query += f"The path of this image: dataset/scienceQA/train/{i}.jpg.\n"
-    ans = obj["choices"][obj["answer"]]
-    lecture = obj["lecture"]
+i = 0
+while i < 1000:
+    try:
+        react_agent = AgentNetWork(llm)
+        f = open(f"./dataset/math/{i}.json", "r")
+        d = json.loads(f.read())
+        query = d["problem"] + "\n"
+        query += "Use Answer tool to submit your final answer. The answer should be an integer instead of an expression or a variable.\n"
+        query += 'Note:\n If you use tools to calculate the result, you should define the variables at first like "x = 2" in the same tool.\n'
 
-    tools[1].func = lambda x: EM(x, ans)
-    tools[-1].knowledge = lecture
+        def f(x):
+            v = tools[8].invoke(x)
+            if str.isnumeric(v):
+                x = v
+            else:
+                v = tools[9].invoke("print(" + x + ")")
+                if str.isnumeric(v):
+                    x = v
+            return EM(x, d["answer"])
 
-    network.init(tools[0], query)
-    llm.tokens = 0
-    network.steps(max_steps=8)
-    network.addExternalLog({"ground_truth": ans, "token_use": llm.tokens})
-    network.saveLog(f"sciQA_{i}")
+        ans = d["answer"]
+        tools[1].func = lambda x: EM(x, ans)
+        tools[8].reset()
+        tools[9].reset()
+        network.init(tools[0], query)
+        llm.tokens = 0
+        network.steps(max_steps=8)
+        network.addExternalLog({"ground_truth": ans, "token_use": llm.tokens})
+        import os
+
+        os.system(f"del ./logs/agentNet_math_{i}.log")
+        network.saveLog(f"agentNet_math_{i}")
+
+        i += 1
+    except:
+        pass
+
 
 # file = open("dataset/tableMWP/problems_train.json", "r")
 # obj:dict = json.loads(file.read())

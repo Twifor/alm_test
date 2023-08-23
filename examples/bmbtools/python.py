@@ -26,6 +26,8 @@ class PythonREPL:
         except Exception as e:
             sys.stdout = old_stdout
             output = repr(e)
+        if output == "":
+            return "Code executed successfully. You should use print in your code to get the value of your variable."
         return output
 
 
@@ -36,9 +38,19 @@ class RunPythonTool(Tool):
         self.python_repl = PythonREPL()
 
     def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
-        invoke_data = invoke_data.strip().strip("```")
-        invoke_data = invoke_data.replace("\\n", "\n")
-        return self.python_repl.run(invoke_data), 0, False, {}
+        code = invoke_data.strip().strip("```")
+        if code.startswith('"') or code.startswith("'"):
+            code = code[1:-1]
+        code = code.replace("\\n", "\n")
+        code = code.replace('\\"', '"')
+        codes = code.split("\n")
+        if len(codes) > 1:
+            codes[-1] = "print(" + codes[-1] + ")"
+        code = "\n".join(codes)
+        return self.python_repl.run(code), 0, False, {}
 
     def description(self) -> str:
-        return "RunPython(command), A Python shell. Use this to execute python commands. Input should be a valid python command. If you want to see the output of a value, you should print it out with `print(...)`."
+        return "RunPython(code), A Python shell. Use this to execute python commands. Input should be a valid python command. If you want to see the output of a value, you should print it out with `print(...)`."
+
+    def reset(self) -> None:
+        self.python_repl = PythonREPL()

@@ -18,7 +18,7 @@ class CodeInterpreter:
             try:
                 # If eval fails, attempt to exec the code without returning a result
                 exec(code, self.globals, self.locals)
-                return "Code executed successfully."
+                return "Code executed successfully. Using ExecuteCode('variable_name') to get the value of the variable you want."
             except Exception as e:
                 return f"Error: {str(e)}"
 
@@ -35,7 +35,7 @@ class ExecuteCodeTool(Tool):
 
     def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         code = invoke_data.strip().strip("```")
-        if code.startswith("\"") or code.startswith("\'"):
+        if code.startswith('"') or code.startswith("'"):
             code = code[1:-1]
         code = code.replace("\\n", "\n")
         code = code.replace('\\"', '"')
@@ -44,3 +44,6 @@ class ExecuteCodeTool(Tool):
 
     def description(self) -> str:
         return 'ExecuteCode(code), execute Python expressions with Python Interpreter, can be used as a simple calculator e.g.,"(123 + 234) / 23 * 19.".'
+
+    def reset(self) -> None:
+        self.interpreter = CodeInterpreter()

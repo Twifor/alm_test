@@ -50,38 +50,38 @@ tools = [
     R_SearchTool(),
     R_UnknownTool(),
     R_LoopUpTool(),
-    ReadLectureTool(""),
+    # ReadLectureTool(""),
+    R_CalculatorTool(),
+    R_ExecuteCodeTool(),
 ]
 tool_list = ToolList()
 for tool in tools:
     tool_list.registerTool(tool)
 
-i = 749
+i = 0
 while i < 1000:
     try:
         react_agent = ReActAgent(llm, tool_list)
-        file = open(f"dataset/scienceQA/test/{i}.json", "r")
-        obj = json.loads(file.read())
-        query = (
-            obj["question"] +
-            " You must choose one answer from the following choices:\n"
-        )
-        query += "Choices: " + str(obj["choices"]) + "\n"
-        if "image" in obj.keys():
-            query += "This question has a related image, you can use some tools to read from this image to help you to solve this problem.\n"
-            query += f"The path of this image: dataset/scienceQA/train/{i}.jpg."
-        ans = obj["choices"][obj["answer"]]
-        lecture = obj["lecture"]
+        f = open(f"./dataset/math/{i}.json", "r")
+        d = json.loads(f.read())
+        query = d["problem"] + "\n"
+        query += "Use Answer tool to submit your final answer. The answer should be an integer instead of an expression.\n"
 
+        def f(x):
+            return EM(x, d["answer"])
+
+        ans = d["answer"]
         tools[1].func = lambda x: EM(x, ans)
-        tools[-1].knowledge = lecture
+
         react_agent.setRequest(query)
         llm.tokens = 0
         react_agent.steps(max_steps=8)
         import os
-        os.system(f"del ./logs/react_sciQA_{i}.log")
+
+        os.system(f"del ./logs/react_math_{i}.log")
         react_agent.saveLog(
-            f"react_sciQA_{i}", {"ground_truth": ans, "token_use": llm.tokens})
+            f"react_math_{i}", {"ground_truth": ans, "token_use": llm.tokens}
+        )
         i += 1
     except:
         continue

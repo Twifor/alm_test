@@ -56,15 +56,15 @@ tool_list = ToolList()
 for tool in tools:
     tool_list.registerTool(tool)
 
-i = 1
+i = 0
 while i < 1000:
     try:
         react_agent = ToTAgent(llm, tool_list)
         file = open(f"dataset/scienceQA/test/{i}.json", "r")
         obj = json.loads(file.read())
         query = (
-            obj["question"] +
-            " You must choose one answer from the following choices:\n"
+            obj["question"]
+            + " You must choose one answer from the following choices:\n"
         )
         query += "Choices: " + str(obj["choices"]) + "\n"
         if "image" in obj.keys():
@@ -79,9 +79,11 @@ while i < 1000:
         llm.tokens = 0
         react_agent.steps(max_steps=8)
         import os
+
         os.system(f"del ./logs/tot_sciQA_{i}.log")
         react_agent.saveLog(
-            f"tot_sciQA_{i}", {"ground_truth": ans, "token_use": llm.tokens})
+            f"tot_sciQA_{i}", {"ground_truth": ans, "token_use": llm.tokens}
+        )
         i += 1
     except:
         continue
