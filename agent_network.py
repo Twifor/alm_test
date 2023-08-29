@@ -32,7 +32,6 @@ import openai
 import json
 
 env = Env()
-# openai.api_key = "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"
 llm = GPT3_5LLM(env.openai_key())
 llm_judge = GPT3_5LLM(env.openai_key())
 tools = [
