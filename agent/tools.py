@@ -28,8 +28,7 @@ class ToolList:
     def registerTool(self, tool: Tool) -> bool:
         tool_label = tool.invoke_label
         if tool_label in self.tool_map.keys():
-            warnings.warn("The tool %s has already been registed." %
-                          tool_label)
+            warnings.warn("The tool %s has already been registed." % tool_label)
             return False
         self.tool_map[tool_label] = tool
 
@@ -47,13 +46,15 @@ class ToolList:
             self.info[tool.invoke_label] = tool.perf_confidence
         confidence = [tool.perf_confidence for tool in tools]
         for i in range(len(confidence)):
-            confidence[i] = np.exp(
-                confidence[i]) if confidence[i] < 0 else confidence[i] + 1
+            confidence[i] = (
+                np.exp(confidence[i]) if confidence[i] < 0 else confidence[i] + 1
+            )
         confidence = confidence / np.sum(confidence)
         for i in range(0, len(tools)):
             tools[i].conf = confidence[i]
-        tools = filter(lambda x: x.conf >
-                       self.threshold or x.invoke_label == "Answer", tools)
+        tools = filter(
+            lambda x: x.conf > self.threshold or x.invoke_label == "Answer", tools
+        )
         tools = sorted(tools, key=lambda x: x.conf, reverse=True)
         return tools
 
@@ -74,7 +75,10 @@ class ToolList:
         for tool in tools:
             if use_conf:
                 res += "%d. [Confidence: %.2f] %s\n" % (
-                    cnt, tool.conf, tool.description())
+                    cnt,
+                    tool.conf,
+                    tool.description(),
+                )
             else:
                 res += "%d. %s\n" % (cnt, tool.description())
             cnt += 1
@@ -88,23 +92,22 @@ class ToolList:
     def num(self):
         return len(self.tool_map)
 
-    def invoke(self, invoke_cmd) -> Union[str, float, bool]:
+    def invoke(self, action, parameter) -> Union[str, float, bool]:
         try:
-            invoke_id = invoke_cmd[0: invoke_cmd.find("(")].strip()
-            args = invoke_cmd[invoke_cmd.find("(") + 1: invoke_cmd.rfind(")")]
-            if args.startswith("'") or args.startswith("\""):
-                args = args[1: -1]
+            invoke_id = action
+            args = parameter
             obs, reward, isDone, info = self.tool_map[invoke_id].invoke(args)
             self.info.update(info)
             return obs, reward, isDone
         except KeyError:
             return (
-                f'"{invoke_id}" not found. You can only invoke the tools we provide to you: {", ".join(self.tool_map.keys())}',
+                f'"{invoke_id}" not found. You can only invoke the tools we provide to you.'
+                + "\nYou can ONLY use tools in your action, don not provide anything else.\nUsage: tool_label(args).",
                 -500,
                 False,
             )
-        except:
-            return "Invalid invoke_cmd %s!" % invoke_cmd, -0.2, False
+        except Exception as e:
+            return f"Invalid tool {invoke_id}! {e}", -0.2, False
 
     def toolInfo(self):
         return self.info

@@ -68,4 +68,4 @@ class R_CalculatorTool(Tool):
         return random.randint(-1000, 1000), 0, False, {}
 
     def description(self) -> str:
-        return "Calculate(expression), calculate mathmatical expresstion and return the final result." 
+        return "Calculate(expression), calculate mathmatical expresstion and return the final result. You can use this tool to calculate your expression." 

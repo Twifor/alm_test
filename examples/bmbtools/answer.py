@@ -11,7 +11,7 @@ class AnswerTool(Tool):
 
     def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         res = invoke_data
-        is_correct = self.func(res)
+        is_correct = self.func(str(res))
         return (
             "You are CORRECT." if is_correct else "You are INCORRECT.",
             1 if is_correct else -1,

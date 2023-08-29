@@ -5,6 +5,7 @@ from examples.bmbtools.answer import AnswerTool
 from utils.logger import logger
 import warnings
 from agent.prompts import *
+import json
 
 
 class ReActAgent:
@@ -38,7 +39,7 @@ class ReActAgent:
     def isCorrect(self) -> bool:
         return self.__is_correct
 
-    def step(self, is_output=True):
+    def step(self, is_output=True, is_last_trial=False):
         if self.isFinished() or self.isCorrect():
             return self.isCorrect()
         prompt = REACT_PROMPT.format(prompt=REACT_INSTRUCTION,
@@ -46,22 +47,34 @@ class ReActAgent:
                                          use_examples=False),
                                      task=self.request, history=self.state_memory.description(),
                                      examples=REACT_EXAMPLES)
+        if is_last_trial:
+            prompt = REACT_LAST_TRIAL.format(
+                task=self.request,
+                history=self.state_memory.description(),
+                format=REACT_LAST_TRIAL_FORMAT,
+            )
         if self.request == "":
             warnings.warn("Request is empty.")
         llm_response = self.llm.response(
-            prompt, stop=f"\nObservation:")
+            prompt, stop=f"END")
         try:
-            thought, action = llm_response.strip().split(f"Action:")
+            llm_response = llm_response.replace("\\", "\\\\")
+            obj = json.loads(llm_response.strip())
+            action = str(obj["Action"])
+            parameter = str(obj["Parameter"])
+            thought = str(obj["Thought"])
         except:
-            warnings.warn("LLM fail recover.")
-            action = self.llm.response(
-                prompt + llm_response + "Action: ", stop=f"\nObservation:"
-            )
-            thought = llm_response
-        obs, reward, isDone = self.toolList.invoke(action)
+            print("xxxxxxxxxxxxx")
+            print(llm_response)
+            print("xxxxxxxxxxxxx")
+            action = "Please output a string of JSON."
+            parameter = "Please output a string of JSON."
+            thought = "Please output a string of JSON."
+        obs, reward, isDone = self.toolList.invoke(str(action), str(parameter))
+        obs = str(obs)
         if is_output:
-            self.output_TAO(thought, action, obs)
-        self.state_memory.updateState(thought, action, obs)
+            self.output_TAO(thought, f"{action}({parameter})", obs)
+        self.state_memory.updateState(thought, f"{action}({parameter})", obs)
         self.current_steps += 1
         if isDone:
             self.__is_correct = reward == 1
@@ -70,7 +83,7 @@ class ReActAgent:
 
     def steps(self, max_steps):
         while self.__isFinished == False:
-            self.step()
+            self.step(is_last_trial=self.current_steps == max_steps)
             if self.current_steps > max_steps:
                 self.__is_correct = False
                 self.__isFinished = True

@@ -32,25 +32,41 @@ class ReActToolAgent:
 
     def step(self, is_last_trial):
         external_prompt = ""
-        if is_last_trial:
-            external_prompt = "This is your last trial. You must use Answer tool to submit your final answer at this step."
         prompt = AGENT_NETWORK_PROMPT.format(
-            prompt=REACT_INSTRUCTION, examples=REACT_EXAMPLES,
-            tool_description=self.toolList.description(use_examples=False,
-                                                       use_conf=True), task=self.request, history=self.state.description(), external_prompt=external_prompt)
+            prompt=REACT_INSTRUCTION,
+            examples=REACT_EXAMPLES,
+            tool_description=self.toolList.description(
+                use_examples=False, use_conf=True
+            ),
+            task=self.request,
+            history=self.state.description(),
+            external_prompt=external_prompt,
+        )
+        if is_last_trial:
+            prompt = REACT_LAST_TRIAL.format(
+                task=self.request,
+                history=self.state.description(),
+                format=REACT_LAST_TRIAL_FORMAT,
+            )
         if self.request == "":
             warnings.warn("Request is empty.")
-        llm_response = self.llm.response(prompt, stop=f"\nObservation:")
+        llm_response = self.llm.response(prompt, stop="END")
         try:
-            thought, action = llm_response.strip().split(f"Action:")
+            llm_response = llm_response.replace("\\", "\\\\")
+            obj = json.loads(llm_response.strip())
+            action = str(obj["Action"])
+            parameter = str(obj["Parameter"])
+            thought = str(obj["Thought"])
         except:
-            warnings.warn("LLM fail recover.")
-            action = self.llm.response(
-                prompt + llm_response + "Action: ", stop=f"\nObservation:"
-            )
-            thought = llm_response
-        obs, reward, isDone = self.toolList.invoke(action)
-        return prompt, thought, action, obs, reward, isDone
+            print("xxxxxxxxxxxxx")
+            print(llm_response)
+            print("xxxxxxxxxxxxx")
+            action = "Please output a string of JSON."
+            parameter = "Please output a string of JSON."
+            thought = "Please output a string of JSON."
+        obs, reward, isDone = self.toolList.invoke(action, parameter)
+        obs = str(obs)
+        return prompt, thought, action, parameter, obs, reward, isDone
 
 
 class AgentNetWork:
@@ -149,7 +165,10 @@ class AgentNetWork:
             tool_prompt += f"{idx}. {tool.description()}\n"
             idx += 1
         prompt = AGENT_NETWORK_REWARD_PROMPT.format(
-            tool_description=tool_prompt, task=self.task, history=self.history_state.description())
+            tool_description=tool_prompt,
+            task=self.task,
+            history=self.history_state.description(),
+        )
         response = self.llm.response(prompt, stop="END")
         tool_scores = response.split("Tool: ")
         tool_score_delta = {}
@@ -160,7 +179,7 @@ class AgentNetWork:
                 print(thought)
                 tool_name = tool_name.strip()
                 if tool_name.find("(") != -1:
-                    tool_name = tool_name[:tool_name.find("(")]
+                    tool_name = tool_name[: tool_name.find("(")]
                 score = int(score.strip())
                 tool_score_delta[tool_name] = score
             except:
@@ -186,8 +205,7 @@ class AgentNetWork:
         tool_score_list = []
         for tool in self.tool_label2tool.values():
             tool_score_list.append((tool.invoke_label, tool.perf_confidence))
-        tool_score_list = sorted(
-            tool_score_list, key=lambda x: x[1], reverse=True)
+        tool_score_list = sorted(tool_score_list, key=lambda x: x[1], reverse=True)
         for i in tool_score_list:
             tool_score_record[i[0]] = i[1]
         tool_score_file = open("tool_score_record.json", "w")
@@ -216,21 +234,15 @@ class AgentNetWork:
         current_agent = self.now
         current_agent.state = self.history_state  # update history
         current_agent.setRequest(self.task)  # submit task/request
-        (
-            prompt,
-            thought,
-            action,
-            obs,
-            reward,
-            isDone
-        ) = current_agent.step(is_last_trial)  # take next step
-        # print(prompt)
-        self.history_state.updateState(
-            thought, action, obs
+        (prompt, thought, action, parameter, obs, reward, isDone) = current_agent.step(
+            is_last_trial
+        )  # take next step
+        state_Res = self.history_state.updateState(
+            thought, f"{action}({parameter})", obs
         )  # update history state
-        next_tool_label = action.strip()[
-            : action.strip().find("(")
-        ].strip()  # split the tool_label
+        if state_Res == False:
+            return  # invalid
+        next_tool_label = action
         if reward != -500:
             next_agent = self.tool_label2agent[next_tool_label]
         else:
@@ -240,25 +252,24 @@ class AgentNetWork:
             self.current_tool_label,
             list(self.now.toolList.toolListWithConf()),
             thought,
-            action,
-            obs
+            f"{action}({parameter})",
+            obs,
         )
         self.now = next_agent
         if isDone:
             self.isFinished = True
-            self.backward(reward)
+            # self.backward(reward)
 
         self.current_steps += 1
         if reward > -500:
             self.current_tool_label = next_tool_label
-            self.tool_chain.append(
-                self.tool_label2tool[self.current_tool_label])
+            self.tool_chain.append(self.tool_label2tool[self.current_tool_label])
 
     def steps(self, max_steps=12):
         while self.isFinished == False:
             self.step(self.current_steps == max_steps)
             if self.current_steps > max_steps:
-                self.backward(-1.0)
+                # self.backward(-1.0)
                 break
 
     def saveLog(self, event_id):

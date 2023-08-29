@@ -6,6 +6,8 @@ from io import StringIO
 from typing import Dict, Optional
 from agent.tools import Tool
 from typing import Union, Dict
+import eventlet
+# from wrapt_timeout_decorator import *
 
 
 class PythonREPL:
@@ -16,18 +18,25 @@ class PythonREPL:
         self.locals: Optional[Dict] = None
 
     def run(self, command: str) -> str:
+        print(command)
         """Run command with own globals/locals and returns anything printed."""
         old_stdout = sys.stdout
         sys.stdout = mystdout = StringIO()
         try:
-            exec(command, self.globals, self.locals)
+            with eventlet.Timeout(3, False):
+                exec(command, self.globals, self.locals)
+                sys.stdout = old_stdout
+                output = mystdout.getvalue()
+        except TimeoutError:
             sys.stdout = old_stdout
-            output = mystdout.getvalue()
+            return "Timeout. You need to simplify your code."
         except Exception as e:
             sys.stdout = old_stdout
-            output = repr(e)
+            output = "You code is invalid or incomplete: " + repr(e)
         if output == "":
-            return "Code executed successfully. You should use print in your code to get the value of your variable."
+            return "Code executed successfully. But nothing output (You should use 'print()', or your 'print' is not reached.)."
+        if len(output) >= 100:
+            output =  output[0:100] + "..."
         return output
 
 
@@ -36,6 +45,7 @@ class RunPythonTool(Tool):
         super().__init__()
         self.invoke_label = "RunPython"
         self.python_repl = PythonREPL()
+        self.globals = globals()
 
     def invoke(self, invoke_data) -> Union[str, float, bool, Dict]:
         code = invoke_data.strip().strip("```")
@@ -43,14 +53,19 @@ class RunPythonTool(Tool):
             code = code[1:-1]
         code = code.replace("\\n", "\n")
         code = code.replace('\\"', '"')
+
         codes = code.split("\n")
         if len(codes) > 1:
-            codes[-1] = "print(" + codes[-1] + ")"
+            if codes[-1][0] != "\t" and codes[-1][0] != " ":
+                codes[-1] = f"try:\n   print({codes[-1]})\nexcept:\n    pass\n"
         code = "\n".join(codes)
+
         return self.python_repl.run(code), 0, False, {}
 
     def description(self) -> str:
-        return "RunPython(code), A Python shell. Use this to execute python commands. Input should be a valid python command. If you want to see the output of a value, you should print it out with `print(...)`."
+        return "RunPython(your_python_code), A Python interpreter. Use this to execute python codes."
 
     def reset(self) -> None:
         self.python_repl = PythonREPL()
+        self.python_repl.globals = self.globals
+        self.python_repl.locals = None

@@ -6,7 +6,6 @@ from agent.llm import LLM
 
 
 class ReActBaseHistoryState(ABC):
-
     @abstractmethod
     def updateState(self, thought, action, observation, rk=True):
         pass
@@ -31,22 +30,34 @@ class ReActRawHistoryState(ReActBaseHistoryState):
         self.request = ""
 
     def updateState(self, thought, action, observation):
+        if len(self.steps) >= 1:
+            if (
+                self.steps[-1]["Thought"] == thought.strip()
+                and self.steps[-1]["Action"] == action.strip()
+            ):
+                observation += "\nWarning: Why do you take the totally same step as the last one? Can you make a different step and solve the task?"
         self.steps.append(
             {
                 "Thought": thought.strip(),
-                "Action":  action,
-                "Observation": observation,
+                "Action": action.strip(),
+                "Observation": observation.strip(),
             }
         )
+        return True
 
     def num(self):
         return len(self.steps)
 
     def description(self):
+        if self.steps == []:
+            return "It is your first trial. Do not have history of reasoning,"
         res = ""
+        cnt = 1
         for step in self.steps:
+            res += f"At step {cnt}:\n"
             for k, v in step.items():
                 res += k + ": " + str(v) + "\n"
+            cnt += 1
         return res
 
     def reset(self):

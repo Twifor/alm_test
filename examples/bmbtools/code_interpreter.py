@@ -18,7 +18,7 @@ class CodeInterpreter:
             try:
                 # If eval fails, attempt to exec the code without returning a result
                 exec(code, self.globals, self.locals)
-                return "Code executed successfully. Using ExecuteCode('variable_name') to get the value of the variable you want."
+                return "Code executed successfully. Using ExecuteCode('expression') to calculate the value of one expression."
             except Exception as e:
                 return f"Error: {str(e)}"
 

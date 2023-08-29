@@ -58,7 +58,7 @@ tool_list = ToolList()
 for tool in tools:
     tool_list.registerTool(tool)
 
-i = 0
+i = 670
 while i < 1000:
     try:
         react_agent = ReActAgent(llm, tool_list)
@@ -83,5 +83,5 @@ while i < 1000:
             f"react_math_{i}", {"ground_truth": ans, "token_use": llm.tokens}
         )
         i += 1
-    except:
-        continue
+    except Exception as e:
+        print(e)

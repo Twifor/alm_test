@@ -1,30 +1,75 @@
 from langchain.prompts import PromptTemplate
+
+REACT_LAST_TRIAL_FORMAT = """In this step, you must submit your final answer.
+Analyze the reasoning history and draw your conclusion.
+
+If you find the reasoning history is unhelpful, you can think by yourself and submit your own answer.
+Your output format should be:
+{
+    "Thought": a string, why you choose that answer,
+    "Action": "Answer",
+    "Parameter": your answer
+}
+END
+Using END to finish your output.
+Now output your final answer in JSON format:"""
+REACT_LAST_TRIAL = PromptTemplate(
+    input_variables=["task", "history", "format"],
+    template="""Another agent is attempting to solve a task, but he has tried many times. Now you need to submit the final answer.
+The task is:
+{task}
+
+Reasoning history:
+{history}
+
+{format}
+""",
+)
+
 REACT_EXAMPLES = """1.
-Thought: I need to search Colorado orogeny, find the area that the eastern sector of the Colorado orogeny extends into, then find the elevation range of the area.
-Action: Search(Colorado orogeny)
-Observation: The Colorado orogeny was an episode of mountain building (an orogeny) in Colorado and surrounding areas.
-2. 
-Thought: It does not mention the eastern sector. So I need to look up eastern sector.
-Action: Lookup(eastern sector)
-Observation: (Result 1 / 1) The eastern sector extends into the High Plains and is called the Central Plains orogeny.
-3.
-Thought: The eastern sector of Colorado orogeny extends into the High Plains. So I need to search High Plains and find its elevation range.
-Action: Search(High Plains)
-Observation: High Plains refers to one of two distinct land regions.
+{
+    "Thought": "I need to search Colorado orogeny, find the area that the eastern sector of the Colorado orogeny extends into, then find the elevation range of the area.",
+    "Action": "Search",
+    "Parameter": "Colorado orogeny"
+}
+END
+2.
+{
+    "Thought": "It does not mention the eastern sector. So I need to look up eastern sector.",
+    "Action": "Lookup",
+    "Parameter": "eastern sector"
+}
+END
 End of the examples."""
 
 REACT_INSTRUCTION = """Solve a task with interleaving Thought, Action, Observation steps. Thought can reason about the current situation. There are some rules your should follow:
-1. You must output your answer in the following format:\nFirstly, output your thought then output "Action:" followed by your action. Finally, output "Observation:" to finish your output.
-2. The action you provide should be the format like "tool_label(tool_arg1, tool_arg2)". Except this, do not output anything else. You need to provide the specified tool_label and then provide your parameters in parentheses.
-3. You can only use the tools we provide to you. The list of tools you can use will be showed later.
-4. You can ONLY invoke ONE tool at each step. You CANNOT invoke two or more tools at one step."""
+1. Using multiple tools to solve your task.
+2. You can only use the tools we provide to you. The list of tools you can use will be showed later.
+3. You can ONLY invoke ONE tool at each step. You CANNOT invoke two or more tools at one step.
+4. Your output should be JSON format:
+{
+    "Thought": a string, your thought at this step.
+    "Action": a string, your action at this step. It should be the name of one tool like 'Search' or 'RunPython'.
+    "Parameter": a string, the parameter of the tool you provide in 'Action'.
+}
+END
+Output END to finish.
+5. We will provide the result of your Action in Observation. You can read from it to get more information.
+6. The former reasoning history will be provided. You should take your next step based on it.
+"""
 
 REFLECT_INSTRUCTION = """You are an advanced reasoning agent that can improve based on self refection. You will be given a previous reasoning trial in which you were given access to multiple tools and a question to answer. You were unsuccessful in answering the question either because you guessed the wrong answer with Answer(<answer>), or you used up your set number of reasoning steps. In a few sentences, Diagnose a possible reason for failure and devise a new, concise, high level plan that aims to mitigate the same failure. Use complete sentences.
 Here are some examples:"""
 
 REFLEXION_PROMPT = PromptTemplate(
-    input_variables=["prompt", "tool_description",
-                     "task", "history", "examples", "reflexion_prompt"],
+    input_variables=[
+        "prompt",
+        "tool_description",
+        "task",
+        "history",
+        "examples",
+        "reflexion_prompt",
+    ],
     template="""{prompt}
 {tool_description}
 There are some examples, which describes the output format (including the corresponding observation) you need to follow:
@@ -37,7 +82,8 @@ Task: {task}
 
 Then take your next step.
 Thought:
-""")
+""",
+)
 
 REFLEXION_EXAMPLE = """Previous Trial:
 Question: The Rome Protocols were signed by three Prime Ministers one of which was assassinated as part of what?
@@ -56,41 +102,49 @@ Reflection: I searched one of the prime ministers involved in the signing, then 
 """
 
 REACT_PROMPT = PromptTemplate(
-    input_variables=["prompt", "tool_description",
-                     "task", "history", "examples"],
+    input_variables=["prompt", "tool_description", "task", "history", "examples"],
     template="""{prompt}
 
 {tool_description}
-There are some examples, which describes the output format (including the corresponding observation) you need to follow:
+
+There are some examples, which describes the format of history of your former reasoning:
 {examples}
 
 Task: {task}
+
+Reasoning history:
 {history}
 
 Then take your next step.
-Thought:
-"""
+""",
 )
 
 
 AGENT_NETWORK_PROMPT = PromptTemplate(
-    input_variables=["prompt", "examples",
-                     "tool_description", "task", "history", "external_prompt"],
+    input_variables=[
+        "prompt",
+        "examples",
+        "tool_description",
+        "task",
+        "history",
+        "external_prompt",
+    ],
     template="""{prompt}
 {tool_description}
-There are some examples, which describes the output format (including the corresponding observation) you need to follow:
-{examples}
 
-{tool_description}
+There are some examples, which describes the format of your output:
+{examples}
 
 Now based on the following information and the task, take the next step.
 Task: {task}
+
+Reasoning History:
 {history}
 
-Then take your next step.
+Then take your next step. Output a string of JSON and then output END. You cannot just repeat the step as the last one. You MUST take a different step based on the history.
+
 {external_prompt}
-Thought:
-"""
+""",
 )
 
 AGENT_NETWORK_REWARD_PROMPT = PromptTemplate(
@@ -108,14 +162,14 @@ The hisory of the whole process is:
 According to the performance of these tools, provide your scores of each tool.
 1. If the final answer of agent is corret, you should determine which tool is helphul and provide higher score.
 2. If the final answer of agent is incorrect or not given, you should determine which tool is noisy and provide lower score.
-3. [MOST IMPORTANT]. Some tools may provide errors. You should discover them and provide lower scores to these tools.
+3. Some tools may provide errors. You should discover them and provide lower scores to these tools.
 
 To provide your scores, you need to output as the following format:
 First, output \"Tool:\" followed by the tool name.
 Next line, output \"Score:\" followed by your score, which is an integer between -3 and 3, higher score means higher performance.
 Then, in the next line, output \"Tought:\" followed by your reason why you give such a score to this tool.
 Then provide the score of the next tool in the next following lines.
-Output END to finish your answer."""
+Output END to finish your answer.""",
 )
 
 #
@@ -151,7 +205,7 @@ Here are some examples:
 Relevant Context: {context}
 Question: {task}
 Thought:
-"""
+""",
 )
 
 
@@ -177,8 +231,14 @@ Action: Search(High Plains);LookUp(High Plains);GoogleSearch(High Plains)
 End of the examples."""
 
 ToT_PROMPT = PromptTemplate(
-    input_variables=["prompt", "tool_description",
-                     "task", "history", "examples", "external_prompt"],
+    input_variables=[
+        "prompt",
+        "tool_description",
+        "task",
+        "history",
+        "examples",
+        "external_prompt",
+    ],
     template="""{prompt}
 
 {tool_description}
@@ -191,11 +251,11 @@ Task: {task}
 Then take your next step. Invoke 3 tools after "Action:".
 {external_prompt}
 Thought:
-"""
+""",
 )
 
 ToT_VOTE_PROMPT = PromptTemplate(
-    input_variables=['task', 'history', 'cur_tools'],
+    input_variables=["task", "history", "cur_tools"],
     template="""You are a fair judger who can select the best tools which are most helpful. Another agent is solving a task by using multiple tools. You should choose one tool which is the best one.
 
 The task is:
@@ -212,5 +272,5 @@ You cannot provide new tools. You must choose one from the tools we provide to y
 
 To submit your answer, you should first provide your reasons of your choice. 
 Then output "Tool: 0" or "Tool: 1" or "Tool: 2" (depending on your choice) to finish you answer.
-"""
+""",
 )
