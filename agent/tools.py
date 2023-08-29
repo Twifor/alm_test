@@ -92,8 +92,16 @@ class ToolList:
     def num(self):
         return len(self.tool_map)
 
-    def invoke(self, action, parameter) -> Union[str, float, bool]:
+    def invoke(self, action, parameter=None) -> Union[str, float, bool]:
         try:
+            try:
+                if parameter == None:
+                    invoke_id = action[0: action.find("(")].strip()
+                    args = action[action.find("(") + 1: action.rfind(")")]
+                    action = invoke_id
+                    parameter = args
+            except:
+                pass
             invoke_id = action
             args = parameter
             obs, reward, isDone, info = self.tool_map[invoke_id].invoke(args)
